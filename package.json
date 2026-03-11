@@ -36,6 +36,7 @@
     "ws": "^8.2.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
     "@types/chai": "^4.2.8",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.14.0",
