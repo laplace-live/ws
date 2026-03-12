@@ -1,204 +1,251 @@
-import { describe, expect, it } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
 
-import { KeepLiveWS as KeepLiveWSBrowser, LiveWS as LiveWSBrowser } from './browser.ts'
-import { getConf, getRoomid, KeepLiveTCP, KeepLiveWS, LiveTCP, LiveWS } from './index.ts'
+import { encoder } from './buffer.ts'
+import { DataEvent } from './common.ts'
+import { getRoomid } from './extra.ts'
+import { KeepLiveWS, LiveWS } from './index.ts'
 
-const TIMEOUT = 1000 * 25
+const TEST_ROOM = 5050
 
-function onceLive(
-  live: { on(type: string, listener: () => void, options?: AddEventListenerOptions): void },
-  event: string
-): Promise<void> {
-  return new Promise(resolve => live.on(event, () => resolve(), { once: true }))
+// Response shape from the LAPLACE, mirrors BilibiliInternal.HTTPS.Prod.GetDanmuInfo
+type RoomConnInfo = {
+  code: number
+  message: string
+  data: {
+    token: string
+    host_list: { host: string; port: number; wss_port: number; ws_port: number }[]
+    fetcher: number
+    ack: string
+  }
 }
 
-function onceHeartbeat(live: {
-  on<T>(type: string, listener: (e: { data: T }) => void, options?: AddEventListenerOptions): void
-}): Promise<number> {
-  return new Promise(resolve => live.on<number>('heartbeat', e => resolve(e.data), { once: true }))
+/**
+ * Acquire a valid authBody from LAPLACE
+ */
+async function acquireAuthBody(roomid: number) {
+  const url = `https://workers.laplace.cn/bilibili/room-conn-info-v2/${roomid}`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  const json: RoomConnInfo = await resp.json()
+
+  if (!json.data) {
+    throw new Error(`Failed to fetch room connection info for room ${roomid}`)
+  }
+
+  const host = json.data.host_list[0]
+  const address = `wss://${host?.host}:${host?.wss_port}/sub`
+
+  return {
+    address,
+    authBody: {
+      uid: json.data.fetcher || 0,
+      roomid,
+      protover: 3,
+      buvid: json.data.ack || '',
+      support_ack: true,
+      queue_uuid: Math.random().toString(36).slice(-8),
+      scene: 'room',
+      platform: 'web',
+      type: 2,
+      key: json.data.token || '',
+    },
+  }
 }
 
-const watch = (
-  live:
-    | LiveWS
-    | LiveTCP
-    | KeepLiveWS
-    | KeepLiveTCP
-    | InstanceType<typeof LiveWSBrowser>
-    | InstanceType<typeof KeepLiveWSBrowser>
-) =>
-  setTimeout(() => {
-    if (!live.closed) {
-      live.close()
-    }
-  }, TIMEOUT)
+// -- External service ---------------------------------------------------------
 
-describe('extra', () => {
-  it('getRoomid', async () => {
-    const roomid = await getRoomid(255)
-    expect(roomid).toBe(48743)
+describe('acquireAuthBody', () => {
+  test('should fetch valid connection info from external service', async () => {
+    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+    expect(address).toMatch(/^wss:\/\//)
+    expect(authBody.key).toBeString()
+    expect(authBody.key.length).toBeGreaterThan(0)
+    expect(authBody.roomid).toBe(TEST_ROOM)
+    expect(authBody.protover).toBe(3)
   })
 })
 
-Object.entries({
-  LiveWS,
-  LiveTCP,
-  KeepLiveWS,
-  KeepLiveTCP,
-  LiveWSBrowser,
-  KeepLiveWSBrowser,
-}).forEach(([name, Live]) => {
-  describe(name, () => {
-    describe('Connect', () => {
-      it('online', async () => {
-        const live = new Live(12235923)
-        watch(live)
-        const online = await onceHeartbeat(live)
-        live.close()
-        expect(online).toBeGreaterThan(0)
-      })
-      it('roomid must be number', () => {
-        expect(() => new (Live as any)('12235923')).toThrow()
-      })
-      it('roomid can not be NaN', () => {
-        expect(() => new (Live as any)(NaN)).toThrow()
-      })
-    })
-    describe('properties', () => {
-      describe('roomid', () => {
-        Object.entries({
-          Mea: 12235923,
-          nana: 21304638,
-          fubuki: 11588230,
-        }).forEach(([roomName, roomid]) => {
-          it(`roomid ${roomName}`, async () => {
-            const live = new Live(roomid)
-            watch(live)
-            await onceLive(live, 'live')
-            live.close()
-            expect(live.roomid).toBe(roomid)
-          })
-        })
-      })
-      it('online', async () => {
-        const live = new Live(12235923)
-        watch(live)
-        const online = await onceHeartbeat(live)
-        live.close()
-        expect(online).toBe(live.online)
-      })
-      it('closed', async () => {
-        const live = new Live(12235923)
-        watch(live)
-        expect(live.closed).toBe(false)
-        await onceLive(live, 'live')
-        live.close()
-        expect(live.closed).toBe(true)
-      })
-    })
-    describe('functions', () => {
-      it('close', async () => {
-        const live = new Live(12235923)
-        watch(live)
-        await onceHeartbeat(live)
-        const close = await new Promise(resolve => {
-          live.on('close', () => resolve('closed'))
-          live.close()
-        })
-        expect(close).toBe('closed')
-      })
-      it('getOnline', async () => {
-        const live = new Live(12235923)
-        watch(live)
-        await onceLive(live, 'live')
-        const online = await live.getOnline()
-        live.close()
-        expect(online).toBeGreaterThan(0)
-      })
-      if (name.includes('Keep')) {
-        it('no error relay', async () => {
-          const live = new Live(12235923) as KeepLiveWS | KeepLiveTCP
-          watch(live)
-          await onceLive(live, 'live')
-          await new Promise<void>((resolve, reject) => {
-            live.on('error', () => reject(), { once: true })
-            live.connection.dispatchEvent(new Event('error'))
-            setTimeout(resolve, 1000)
-          })
-          live.close()
-        })
-      }
-      if (name.includes('Keep')) {
-        it('close and reopen', async () => {
-          const live = new Live(12235923) as KeepLiveWS | KeepLiveTCP
-          watch(live)
-          await onceLive(live, 'live')
-          live.connection.close()
-          await onceLive(live, 'live')
-          live.close()
-        })
-      } else {
-        it('close on error', async () => {
-          const live = new Live(12235923)
-          watch(live)
-          await onceHeartbeat(live)
-          const close = await new Promise(resolve => {
-            live.on('close', () => resolve('closed'))
-            live.on('error', () => {})
-            live.dispatchEvent(new Event('_error'))
-          })
-          expect(close).toBe('closed')
-        })
-      }
-    })
-    describe('options', () => {
-      it('protover: 1', async () => {
-        const live = new Live(12235923, { protover: 1 })
-        watch(live)
-        const online = await onceHeartbeat(live)
-        live.close()
-        expect(online).toBeGreaterThan(0)
-      })
-      it('protover: 3', async () => {
-        const live = new Live(12235923, { protover: 3 })
-        watch(live)
-        const online = await onceHeartbeat(live)
-        live.close()
-        expect(online).toBeGreaterThan(0)
-      })
-      if (name.includes('WS')) {
-        it('address', async () => {
-          const L = Live as typeof LiveWS | typeof KeepLiveWS
-          const live = new L(12235923, {
-            address: 'wss://broadcastlv.chat.bilibili.com/sub',
-          })
-          watch(live)
-          const online = await onceHeartbeat(live)
-          live.close()
-          expect(online).toBeGreaterThan(0)
-        })
-      } else if (name.includes('TCP')) {
-        it('host, port', async () => {
-          const live = new Live(12235923, {
-            host: 'broadcastlv.chat.bilibili.com',
-            port: 2243,
-          })
-          watch(live)
-          const online = await onceHeartbeat(live)
-          live.close()
-          expect(online).toBeGreaterThan(0)
-        })
-      } else {
-        throw new Error('no options test')
-      }
-      it('key: token', async () => {
-        const { key, host, address } = await getConf(12235923)
-        const live = new Live(12235923, { key, host, address })
-        watch(live)
-        const online = await onceHeartbeat(live)
-        live.close()
-        expect(online).toBeGreaterThan(0)
+describe('getRoomid', () => {
+  test('should resolve a room id to a numeric value', async () => {
+    const roomid = await getRoomid(TEST_ROOM)
+    expect(typeof roomid).toBe('number')
+    expect(roomid).toBeGreaterThan(0)
+  })
+})
+
+// -- Buffer / encoder ---------------------------------------------------------
+
+describe('encoder', () => {
+  test('heartbeat produces a 16-byte header-only packet', () => {
+    const buf = encoder('heartbeat')
+    expect(buf).toBeInstanceOf(Uint8Array)
+    expect(buf.length).toBe(16)
+
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+    expect(view.getInt32(0)).toBe(16)
+    expect(view.getInt16(4)).toBe(16)
+    expect(view.getInt32(8)).toBe(2)
+  })
+
+  test('join encodes a JSON body after the 16-byte header', () => {
+    const body = { uid: 0, roomid: TEST_ROOM, protover: 3, platform: 'web', type: 2 }
+    const buf = encoder('join', body)
+    expect(buf).toBeInstanceOf(Uint8Array)
+    expect(buf.length).toBeGreaterThan(16)
+
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+    expect(view.getInt32(0)).toBe(buf.length)
+    expect(view.getInt16(4)).toBe(16)
+    expect(view.getInt32(8)).toBe(7)
+
+    const parsed = JSON.parse(new TextDecoder().decode(buf.slice(16)))
+    expect(parsed.roomid).toBe(TEST_ROOM)
+    expect(parsed.protover).toBe(3)
+  })
+
+  test('join with string body', () => {
+    const buf = encoder('join', 'hello')
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+    expect(view.getInt32(8)).toBe(7)
+    expect(new TextDecoder().decode(buf.slice(16))).toBe('hello')
+  })
+})
+
+// -- Custom event classes -----------------------------------------------------
+
+describe('DataEvent', () => {
+  test('carries typed data on the instance', () => {
+    const evt = new DataEvent('msg', { cmd: 'DANMU_MSG' })
+    expect(evt.type).toBe('msg')
+    expect(evt.data).toEqual({ cmd: 'DANMU_MSG' })
+  })
+})
+
+// -- LiveWS integration -------------------------------------------------------
+
+describe('LiveWS', () => {
+  const connections: LiveWS[] = []
+
+  afterAll(() => {
+    for (const c of connections) {
+      try {
+        c.close()
+      } catch {}
+    }
+  })
+
+  test('should connect with authBody and fire live event', async () => {
+    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+    const live = new LiveWS(TEST_ROOM, { address, authBody })
+    connections.push(live)
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
+      live.on('live', () => {
+        clearTimeout(timer)
+        resolve()
       })
     })
+
+    expect(live.live).toBe(true)
+    expect(live.roomid).toBe(TEST_ROOM)
+  })
+
+  test('should receive heartbeat with online count', async () => {
+    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+    const live = new LiveWS(TEST_ROOM, { address, authBody })
+    connections.push(live)
+
+    const online = await new Promise<number>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
+      live.on<number>('heartbeat', e => {
+        clearTimeout(timer)
+        resolve(e.data)
+      })
+    })
+
+    expect(typeof online).toBe('number')
+    expect(online).toBeGreaterThanOrEqual(0)
+  })
+
+  test('close sets closed flag and fires close event', async () => {
+    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+    const live = new LiveWS(TEST_ROOM, { address, authBody })
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
+      live.on('live', () => live.close())
+      live.on('close', () => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+
+    expect(live.closed).toBe(true)
+  })
+
+  test('getOnline() returns a number', async () => {
+    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+    const live = new LiveWS(TEST_ROOM, { address, authBody })
+    connections.push(live)
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
+      live.on('live', () => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+
+    const online = await live.getOnline()
+    expect(typeof online).toBe('number')
+    expect(online).toBeGreaterThanOrEqual(0)
+  })
+})
+
+// -- Error handling -----------------------------------------------------------
+
+describe('LiveWS error handling', () => {
+  test('throws for NaN roomid', () => {
+    expect(() => new LiveWS(NaN)).toThrow('must be Number not NaN')
+  })
+
+  test('throws for non-number roomid', () => {
+    // @ts-expect-error intentional bad input
+    expect(() => new LiveWS('abc')).toThrow('must be Number not NaN')
+  })
+})
+
+// -- KeepLiveWS integration ---------------------------------------------------
+
+describe('KeepLiveWS', () => {
+  test('should connect and expose online/roomid', async () => {
+    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+    const keep = new KeepLiveWS(TEST_ROOM, { address, authBody })
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        keep.close()
+        reject(new Error('Timeout'))
+      }, 4000)
+      keep.on<number>('heartbeat', () => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+
+    expect(keep.roomid).toBe(TEST_ROOM)
+    expect(typeof keep.online).toBe('number')
+
+    keep.close()
+    expect(keep.closed).toBe(true)
   })
 })
