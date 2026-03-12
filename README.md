@@ -1,6 +1,6 @@
 # @laplace.live/ws
 
-Bilibili Live WebSocket/TCP API. Browser support via `@laplace.live/ws/browser` (experimental).
+Bilibili Live WebSocket/TCP API. Browser support via `@laplace.live/ws/browser`
 
 This project is based on [bilibili-live-ws](https://github.com/simon300000/bilibili-live-ws) and has the exact same API as the original project, with the following differences:
 
