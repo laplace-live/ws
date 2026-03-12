@@ -1,6 +1,6 @@
 import type { Inflates } from './buffer.ts'
 
-import { DataEvent } from './events.ts'
+import { LaplaceRawEvent } from './events.ts'
 import { Live, type LiveOptions } from './live.ts'
 
 /**
@@ -17,7 +17,7 @@ export type WSOptions = LiveOptions & {
  *
  * Wraps a native {@link WebSocket}, wiring its lifecycle events (`open`,
  * `message`, `close`, `error`) into the {@link Live} event system. Binary
- * frames are forwarded as `DataEvent<Uint8Array>` for protocol decoding.
+ * frames are forwarded as `LaplaceRawEvent<Uint8Array>` for protocol decoding.
  *
  * Not typically instantiated directly — use {@link LiveWS} (server) or the
  * browser-specific `LiveWS` which inject the appropriate inflate
@@ -49,7 +49,7 @@ export class LiveWSBase extends Live {
     ws.binaryType = 'arraybuffer'
     ws.addEventListener('open', e => this.dispatchEvent(new Event(e.type)))
     ws.addEventListener('message', e =>
-      this.dispatchEvent(new DataEvent('message', new Uint8Array(e.data as ArrayBuffer)))
+      this.dispatchEvent(new LaplaceRawEvent('message', new Uint8Array(e.data as ArrayBuffer)))
     )
     ws.addEventListener('close', e => this.dispatchEvent(new Event(e.type)))
     ws.addEventListener('error', () => this.dispatchEvent(new Event('_error')))

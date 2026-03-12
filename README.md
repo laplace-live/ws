@@ -20,15 +20,63 @@ bun add @laplace.live/ws
 ## Usage
 
 ```typescript
-// Or specifically use @laplace.live/ws/server or @laplace.live/ws/client
-import { LiveWS, LiveTCP, KeepLiveWS, KeepLiveTCP } from "@laplace.live/ws";
+import type { BilibiliInternal } from "@laplace.live/internal";
+import { LiveWS, KeepLiveWS } from "@laplace.live/ws";
 
-const live = new LiveWS(25034104);
+const live = new LiveWS(25034104, { key: "...", address: "wss://..." });
 
-live.on<T>("open", () => console.log("Connection established"));
-live.on("live", () => {
-  live.on<T>("heartbeat", console.log);
+live.on("open", () => console.log("Connection established"));
+live.on("live", () => console.log("Room entered"));
+live.on<number>("heartbeat", ({ data }) => console.log("Online:", data));
+live.on<{ cmd: string }>("msg", ({ data }) =>
+  console.log("Command:", data.cmd),
+);
+live.on<BilibiliInternal.WebSocket.Prod.DANMU_MSG>("DANMU_MSG", ({ data }) =>
+  console.log("DANMU_MSG msg_id", data.msg_id),
+);
+```
+
+### Browser
+
+```typescript
+import type { BilibiliInternal } from "@laplace.live/internal";
+import { KeepLiveWS } from "@laplace.live/ws/browser";
+
+const live = new KeepLiveWS(25034104, { key: "...", address: "wss://..." });
+live.on<BilibiliInternal.WebSocket.Prod.DANMU_MSG>("DANMU_MSG", ({ data }) =>
+  console.log("DANMU_MSG msg_id", data.msg_id),
+);
+```
+
+### Using addEventListener
+
+Since `LiveWS` and `KeepLiveWS` extend `EventTarget`, you can also use the
+standard `addEventListener` API. Events carrying data are instances of
+`LaplaceRawEvent<T>`, which extends `Event` with a typed `data` property.
+
+```typescript
+import { LiveWS, LaplaceRawEvent } from "@laplace.live/ws";
+
+const live = new LiveWS(25034104, { key: "...", address: "wss://..." });
+
+live.addEventListener("heartbeat", (e) => {
+  const online = (e as LaplaceRawEvent<number>).data;
+  console.log("Online:", online);
 });
+
+live.addEventListener("DANMU_MSG", (e) => {
+  const data = (e as LaplaceRawEvent<unknown>).data;
+  console.log("Danmaku:", data);
+});
+```
+
+### TCP (Node.js / Bun only)
+
+```typescript
+import { LiveTCP, KeepLiveTCP } from "@laplace.live/ws";
+
+const live = new LiveTCP(25034104, { key: "..." });
+live.on<number>("heartbeat", ({ data }) => console.log("Online:", data));
 ```
 
 ## License

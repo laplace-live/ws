@@ -1,5 +1,5 @@
 import { encoder, type Inflates, makeDecoder } from './buffer.ts'
-import { DataEvent, EventEvent } from './events.ts'
+import { LaplaceRawEvent } from './events.ts'
 
 /**
  * Options for configuring the Bilibili live connection authentication.
@@ -33,12 +33,12 @@ export type LiveOptions = {
  * |---------------|--------------------|--------------------------------------------------|
  * | `open`        | —                  | Underlying transport connected.                  |
  * | `live`        | —                  | Server acknowledged the join (room entered).     |
- * | `heartbeat`   | `DataEvent<number>`| Online viewer count received from server.        |
- * | `msg`         | `DataEvent<any>`   | Any server command message.                      |
- * | `DANMU_MSG`   | `DataEvent<any>`   | Danmaku (chat) message.                          |
+ * | `heartbeat`   | `LaplaceRawEvent<number>`| Online viewer count received from server.        |
+ * | `msg`         | `LaplaceRawEvent<any>`   | Any server command message.                      |
+ * | `DANMU_MSG`   | `LaplaceRawEvent<any>`   | Danmaku (chat) message.                          |
  * | `close`       | —                  | Connection closed.                               |
  * | `error`       | —                  | Unrecoverable error (connection is closed).      |
- * | `event`       | `EventEvent`       | Meta-event wrapping every dispatched event.      |
+ * | `event`       | `LaplaceRawEvent<Event>` | Meta-event wrapping every dispatched event.      |
  *
  * Subclasses ({@link LiveWSBase}, {@link LiveTCPBase}) provide the concrete
  * transport and supply `send` / `close` callbacks to this constructor.
@@ -99,7 +99,7 @@ export class Live extends EventTarget {
     const decode = makeDecoder(inflates)
 
     this.addEventListener('message', async e => {
-      const buffer = (e as DataEvent<Uint8Array>).data
+      const buffer = (e as LaplaceRawEvent<Uint8Array>).data
       const packs = await decode(buffer)
       packs.forEach(({ type, data }) => {
         if (type === 'welcome') {
@@ -111,16 +111,16 @@ export class Live extends EventTarget {
           this.online = data
           clearTimeout(this.timeout)
           this.timeout = setTimeout(() => this.heartbeat(), 1000 * 30)
-          this.dispatchEvent(new DataEvent('heartbeat', this.online))
+          this.dispatchEvent(new LaplaceRawEvent('heartbeat', this.online))
         }
         if (type === 'message') {
-          this.dispatchEvent(new DataEvent('msg', data))
+          this.dispatchEvent(new LaplaceRawEvent('msg', data))
           const cmd = data.cmd || data.msg?.cmd
           if (cmd) {
             if (cmd.includes('DANMU_MSG')) {
-              this.dispatchEvent(new DataEvent('DANMU_MSG', data))
+              this.dispatchEvent(new LaplaceRawEvent('DANMU_MSG', data))
             } else {
-              this.dispatchEvent(new DataEvent(cmd, data))
+              this.dispatchEvent(new LaplaceRawEvent(cmd, data))
             }
           }
         }
@@ -162,12 +162,12 @@ export class Live extends EventTarget {
   }
 
   /**
-   * Overridden to also dispatch an {@link EventEvent} for every event,
-   * enabling catch-all listeners via the `"event"` type.
+   * Overridden to also dispatch a `LaplaceRawEvent<Event>` with type `"event"`
+   * for every event, enabling catch-all listeners.
    */
   dispatchEvent(event: Event): boolean {
     const result = super.dispatchEvent(event)
-    super.dispatchEvent(new EventEvent(event))
+    super.dispatchEvent(new LaplaceRawEvent('event', event))
     return result
   }
 
@@ -184,22 +184,22 @@ export class Live extends EventTarget {
   getOnline() {
     this.heartbeat()
     return new Promise<number>(resolve =>
-      this.addEventListener('heartbeat', e => resolve((e as DataEvent<number>).data), { once: true })
+      this.addEventListener('heartbeat', e => resolve((e as LaplaceRawEvent<number>).data), { once: true })
     )
   }
 
   /**
-   * Subscribe to an event type with a typed {@link DataEvent} listener.
+   * Subscribe to an event type with a typed {@link LaplaceRawEvent} listener.
    * Convenience wrapper around {@link EventTarget.addEventListener}.
    *
    * @typeParam T - Expected data type carried by the event.
    * @param type     - Event name (e.g. `"heartbeat"`, `"msg"`, `"DANMU_MSG"`).
-   * @param listener - Callback receiving a {@link DataEvent DataEvent\<T\>}.
+   * @param listener - Callback receiving a {@link LaplaceRawEvent LaplaceRawEvent\<T\>}.
    * @param options  - Standard `addEventListener` options.
    */
   on<T = unknown>(
     type: string,
-    listener: (event: DataEvent<T>) => void,
+    listener: (event: LaplaceRawEvent<T>) => void,
     options?: boolean | AddEventListenerOptions
   ): void {
     this.addEventListener(type, listener as EventListener, options)
@@ -216,7 +216,7 @@ export class Live extends EventTarget {
    */
   off<T = unknown>(
     type: string,
-    listener: (event: DataEvent<T>) => void,
+    listener: (event: LaplaceRawEvent<T>) => void,
     options?: boolean | EventListenerOptions
   ): void {
     this.removeEventListener(type, listener as EventListener, options)

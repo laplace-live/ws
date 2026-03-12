@@ -2,7 +2,7 @@ import net, { type Socket } from 'node:net'
 
 import type { Inflates } from './buffer.ts'
 
-import { DataEvent } from './events.ts'
+import { LaplaceRawEvent } from './events.ts'
 import { Live, type LiveOptions } from './live.ts'
 
 /**
@@ -79,7 +79,7 @@ export class LiveTCPBase extends Live {
         this.i = 0
         this.buf = Buffer.from(this.buf)
       }
-      this.dispatchEvent(new DataEvent('message', pack as Uint8Array))
+      this.dispatchEvent(new LaplaceRawEvent('message', pack))
     }
   }
 }

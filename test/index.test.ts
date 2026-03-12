@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { encoder } from '../src/buffer.ts'
-import { DataEvent } from '../src/events.ts'
+import { LaplaceRawEvent } from '../src/events.ts'
 import { getRoomid } from '../src/extra.ts'
 import { KeepLiveWS, LiveWS } from '../src/index.ts'
 import { runLiveWSSuite } from './suite.ts'
@@ -70,11 +70,11 @@ describe('encoder', () => {
   })
 })
 
-// -- Server-only: DataEvent ---------------------------------------------------
+// -- Server-only: LaplaceRawEvent ---------------------------------------------------
 
-describe('DataEvent', () => {
+describe('LaplaceRawEvent', () => {
   test('carries typed data on the instance', () => {
-    const evt = new DataEvent('msg', { cmd: 'DANMU_MSG' })
+    const evt = new LaplaceRawEvent('msg', { cmd: 'DANMU_MSG' })
     expect(evt.type).toBe('msg')
     expect(evt.data).toEqual({ cmd: 'DANMU_MSG' })
   })

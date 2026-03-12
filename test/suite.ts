@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 
-import type { DataEvent } from '../src/events.ts'
+import type { LaplaceRawEvent } from '../src/events.ts'
 import type { Live } from '../src/live.ts'
 import type { WSOptions } from '../src/ws.ts'
 
@@ -17,7 +17,7 @@ type KeepLiveWSConstructor = new (
   close(): void
   on<T = unknown>(
     type: string,
-    listener: (event: DataEvent<T>) => void,
+    listener: (event: LaplaceRawEvent<T>) => void,
     options?: boolean | AddEventListenerOptions
   ): void
 }

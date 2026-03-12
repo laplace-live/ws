@@ -1,6 +1,6 @@
 import type { Live } from './live.ts'
 
-import { DataEvent, EventEvent } from './events.ts'
+import { LaplaceRawEvent } from './events.ts'
 
 /**
  * Auto-reconnecting wrapper around a {@link Live} subclass.
@@ -46,12 +46,12 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
   }
 
   /**
-   * Overridden to also dispatch an {@link EventEvent} for every event,
-   * enabling catch-all listeners via the `"event"` type.
+   * Overridden to also dispatch a `LaplaceRawEvent<Event>` with type `"event"`
+   * for every event, enabling catch-all listeners.
    */
   dispatchEvent(event: Event): boolean {
     const result = super.dispatchEvent(event)
-    super.dispatchEvent(new EventEvent(event))
+    super.dispatchEvent(new LaplaceRawEvent('event', event))
     return result
   }
 
@@ -75,10 +75,10 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
     }, this.timeout)
 
     connection.addEventListener('event', e => {
-      const evt = (e as EventEvent).event
+      const evt = (e as LaplaceRawEvent<Event>).data
       if (evt.type !== 'error') {
-        if (evt instanceof DataEvent) {
-          this.dispatchEvent(new DataEvent(evt.type, evt.data))
+        if (evt instanceof LaplaceRawEvent) {
+          this.dispatchEvent(new LaplaceRawEvent(evt.type, evt.data))
         } else {
           this.dispatchEvent(new Event(evt.type))
         }
@@ -144,16 +144,16 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
   }
 
   /**
-   * Subscribe to an event type with a typed {@link DataEvent} listener.
+   * Subscribe to an event type with a typed {@link LaplaceRawEvent} listener.
    *
    * @typeParam T - Expected data type carried by the event.
    * @param type     - Event name (e.g. `"heartbeat"`, `"msg"`, `"DANMU_MSG"`).
-   * @param listener - Callback receiving a {@link DataEvent DataEvent\<T\>}.
+   * @param listener - Callback receiving a {@link LaplaceRawEvent LaplaceRawEvent\<T\>}.
    * @param options  - Standard `addEventListener` options.
    */
   on<T = unknown>(
     type: string,
-    listener: (event: DataEvent<T>) => void,
+    listener: (event: LaplaceRawEvent<T>) => void,
     options?: boolean | AddEventListenerOptions
   ): void {
     this.addEventListener(type, listener as EventListener, options)
@@ -169,7 +169,7 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
    */
   off<T = unknown>(
     type: string,
-    listener: (event: DataEvent<T>) => void,
+    listener: (event: LaplaceRawEvent<T>) => void,
     options?: boolean | EventListenerOptions
   ): void {
     this.removeEventListener(type, listener as EventListener, options)
