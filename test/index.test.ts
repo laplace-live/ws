@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { encoder } from '../src/buffer.ts'
-import { DataEvent } from '../src/common.ts'
+import { DataEvent } from '../src/events.ts'
 import { getRoomid } from '../src/extra.ts'
 import { KeepLiveWS, LiveWS } from '../src/index.ts'
 import { runLiveWSSuite } from './suite.ts'

@@ -1,10 +1,34 @@
 import type { Inflates } from './buffer.ts'
 
-import { DataEvent, Live, type LiveOptions } from './common.ts'
+import { DataEvent } from './events.ts'
+import { Live, type LiveOptions } from './live.ts'
 
-export type WSOptions = LiveOptions & { address?: string }
+/**
+ * Configuration options for WebSocket-based live connections.
+ * Extends {@link LiveOptions} with an optional WebSocket server address.
+ */
+export type WSOptions = LiveOptions & {
+  /** WebSocket server URL. Defaults to `wss://broadcastlv.chat.bilibili.com/sub`. */
+  address?: string
+}
 
+/**
+ * WebSocket transport for Bilibili live room connections.
+ *
+ * Wraps a native {@link WebSocket}, wiring its lifecycle events (`open`,
+ * `message`, `close`, `error`) into the {@link Live} event system. Binary
+ * frames are forwarded as `DataEvent<Uint8Array>` for protocol decoding.
+ *
+ * Not typically instantiated directly — use {@link LiveWS} (server) or the
+ * browser-specific `LiveWS` which inject the appropriate inflate
+ * implementation.
+ *
+ * @param inflates - Platform-specific inflate/brotli decompressors.
+ * @param roomid   - Numeric Bilibili live room ID.
+ * @param options  - WebSocket address and authentication options.
+ */
 export class LiveWSBase extends Live {
+  /** The underlying native WebSocket instance. */
   ws: WebSocket
 
   constructor(

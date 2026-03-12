@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 
-import type { DataEvent, Live } from '../src/common.ts'
+import type { DataEvent } from '../src/events.ts'
+import type { Live } from '../src/live.ts'
 import type { WSOptions } from '../src/ws.ts'
 
 import { acquireAuthBody, TEST_ROOM } from './utils.ts'

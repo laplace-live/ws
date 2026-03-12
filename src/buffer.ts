@@ -1,5 +1,10 @@
-// https://github.com/lovelyyoshino/Bilibili-Live-API/blob/master/API.WebSocket.md
-
+/**
+ * Platform-specific inflate/decompress implementations injected into the
+ * decoder at construction time.
+ *
+ * - **Node / Bun**: backed by `node:zlib` (`inflate` + `brotliDecompress`).
+ * - **Browser**: backed by `pako` (inflate) + a bundled JS Brotli decoder.
+ */
 export type Inflates = {
   inflateAsync: (b: Uint8Array) => Uint8Array | Promise<Uint8Array>
   brotliDecompressAsync: (b: Uint8Array) => Uint8Array | Promise<Uint8Array>
@@ -31,6 +36,24 @@ const cutBuffer = (buffer: Uint8Array) => {
   return bufferPacks
 }
 
+/**
+ * Create an async decoder function that parses raw Bilibili live WebSocket
+ * frames into structured packets.
+ *
+ * Each frame has a 16-byte header:
+ * - bytes 0–3: total packet length (int32 BE)
+ * - bytes 4–5: header length (int16 BE, always 16)
+ * - bytes 6–7: protocol version (0 = JSON, 1 = heartbeat, 2 = zlib, 3 = brotli)
+ * - bytes 8–11: operation (2 = heartbeat req, 3 = heartbeat resp, 5 = message, 7 = join, 8 = welcome)
+ * - bytes 12–15: sequence id
+ *
+ * Compressed frames (protocol 2/3) are recursively decoded after inflation.
+ *
+ * @link https://github.com/lovelyyoshino/Bilibili-Live-API/blob/master/API.WebSocket.md
+ * @param inflates - Platform-specific decompression implementations.
+ * @returns An async function that decodes a raw `Uint8Array` frame into an
+ *          array of `{ buf, type, protocol, data }` packets.
+ */
 export const makeDecoder = ({ inflateAsync, brotliDecompressAsync }: Inflates) => {
   const decoder = async (buffer: Uint8Array) => {
     const packs = await Promise.all(
@@ -82,6 +105,22 @@ export const makeDecoder = ({ inflateAsync, brotliDecompressAsync }: Inflates) =
 
 type EncodeType = 'heartbeat' | 'join'
 
+/**
+ * Encode a Bilibili live protocol packet with a 16-byte header and an
+ * optional body.
+ *
+ * Header layout:
+ * - bytes 0–3: total length (header + body)
+ * - bytes 4–5: header length (16)
+ * - bytes 6–7: protocol version (1)
+ * - bytes 8–11: operation (`2` for heartbeat, `7` for join)
+ * - bytes 12–15: sequence id (1)
+ *
+ * @param type - Packet type: `"heartbeat"` (keep-alive) or `"join"` (room enter).
+ * @param body - Optional payload. Objects are JSON-stringified; strings are
+ *               encoded as UTF-8. Defaults to an empty string.
+ * @returns The encoded packet as a `Uint8Array`.
+ */
 export const encoder = (type: EncodeType, body: string | Record<string, unknown> = '') => {
   const encoded = typeof body === 'string' ? body : JSON.stringify(body)
   const head = new Uint8Array(16)
