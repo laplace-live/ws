@@ -1,11 +1,11 @@
 import { KeepLive } from './common.ts'
 import { inflates } from './inflate/node.ts'
 import { LiveTCPBase, type TCPOptions } from './tcp.ts'
-import { LiveWSBase, type WSOptions } from './ws-node.ts'
+import { LiveWSBase, type WSOptions } from './ws.ts'
 
 export type { LiveOptions } from './common.ts'
 export type { TCPOptions } from './tcp.ts'
-export type { WSOptions } from './ws-node.ts'
+export type { WSOptions } from './ws.ts'
 
 export { DataEvent, EventEvent } from './common.ts'
 export { getConf, getRoomid } from './extra.ts'

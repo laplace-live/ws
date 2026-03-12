@@ -1,9 +1,9 @@
 import { KeepLive } from './common.ts'
 import { inflates } from './inflate/browser.ts'
-import { LiveWSBase, type WSOptions } from './ws-client.ts'
+import { LiveWSBase, type WSOptions } from './ws.ts'
 
 export type { LiveOptions } from './common.ts'
-export type { WSOptions } from './ws-client.ts'
+export type { WSOptions } from './ws.ts'
 
 export { DataEvent, EventEvent } from './common.ts'
 
