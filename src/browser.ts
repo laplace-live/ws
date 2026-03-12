@@ -5,7 +5,7 @@ import { LiveWSBase, type WSOptions } from './ws-client.ts'
 export type { LiveOptions } from './common.ts'
 export type { WSOptions } from './ws-client.ts'
 
-export { relayEvent } from './common.ts'
+export { DataEvent, EventEvent } from './common.ts'
 
 export class LiveWS extends LiveWSBase {
   constructor(roomid: number, opts?: WSOptions) {

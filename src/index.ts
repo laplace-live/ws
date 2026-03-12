@@ -7,7 +7,7 @@ export type { LiveOptions } from './common.ts'
 export type { TCPOptions } from './tcp.ts'
 export type { WSOptions } from './ws-node.ts'
 
-export { relayEvent } from './common.ts'
+export { DataEvent, EventEvent } from './common.ts'
 export { getConf, getRoomid } from './extra.ts'
 
 export class LiveWS extends LiveWSBase {

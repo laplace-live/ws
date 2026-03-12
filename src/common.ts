@@ -1,29 +1,37 @@
-import { EventEmitter } from 'events'
-
 import { encoder, type Inflates, makeDecoder } from './buffer.ts'
 
-export type LiveOptions = { protover?: 1 | 2 | 3; key?: string; authBody?: any; uid?: number; buvid?: string }
+export type LiveOptions = {
+  protover?: 1 | 2 | 3
+  key?: string
+  authBody?: Uint8Array | Record<string, unknown>
+  uid?: number
+  buvid?: string
+}
 
-export const relayEvent = Symbol('relay')
-
-class NiceEventEmitter extends EventEmitter {
-  emit(eventName: string | symbol, ...params: any[]) {
-    super.emit(eventName, ...params)
-    super.emit(relayEvent, eventName, ...params)
-    return true
+export class DataEvent<T> extends Event {
+  data: T
+  constructor(type: string, data: T) {
+    super(type)
+    this.data = data
   }
 }
 
-export class Live extends NiceEventEmitter {
+export class EventEvent extends Event {
+  event: Event
+  constructor(event: Event) {
+    super('event')
+    this.event = event
+  }
+}
+
+export class Live extends EventTarget {
   roomid: number
   online: number
   live: boolean
   closed: boolean
   timeout: ReturnType<typeof setTimeout>
 
-  inflates: Inflates
-
-  send: (data: Buffer) => void
+  send: (data: Uint8Array) => void
   close: () => void
 
   constructor(
@@ -37,14 +45,13 @@ export class Live extends NiceEventEmitter {
       authBody,
       uid = 0,
       buvid,
-    }: { send: (data: Buffer) => void; close: () => void } & LiveOptions
+    }: { send: (data: Uint8Array) => void; close: () => void } & LiveOptions
   ) {
     if (typeof roomid !== 'number' || Number.isNaN(roomid)) {
       throw new Error(`roomid ${roomid} must be Number not NaN`)
     }
 
     super()
-    this.inflates = inflates
     this.roomid = roomid
     this.online = 0
     this.live = false
@@ -57,40 +64,40 @@ export class Live extends NiceEventEmitter {
       close()
     }
 
-    this.on('message', async buffer => {
-      const packs = await makeDecoder(inflates)(buffer)
+    const decode = makeDecoder(inflates)
+
+    this.addEventListener('message', async e => {
+      const buffer = (e as DataEvent<Uint8Array>).data
+      const packs = await decode(buffer)
       packs.forEach(({ type, data }) => {
         if (type === 'welcome') {
           this.live = true
-          this.emit('live')
-          this.send(encoder('heartbeat', inflates))
+          this.dispatchEvent(new Event('live'))
+          this.send(encoder('heartbeat'))
         }
         if (type === 'heartbeat') {
           this.online = data
           clearTimeout(this.timeout)
           this.timeout = setTimeout(() => this.heartbeat(), 1000 * 30)
-          this.emit('heartbeat', this.online)
+          this.dispatchEvent(new DataEvent('heartbeat', this.online))
         }
         if (type === 'message') {
-          this.emit('msg', data)
-          const cmd = data.cmd || (data.msg && data.msg.cmd)
+          this.dispatchEvent(new DataEvent('msg', data))
+          const cmd = data.cmd || data.msg?.cmd
           if (cmd) {
             if (cmd.includes('DANMU_MSG')) {
-              this.emit('DANMU_MSG', data)
+              this.dispatchEvent(new DataEvent('DANMU_MSG', data))
             } else {
-              this.emit(cmd, data)
+              this.dispatchEvent(new DataEvent(cmd, data))
             }
           }
         }
       })
     })
 
-    this.on('open', () => {
+    this.addEventListener('open', () => {
       if (authBody) {
-        if (typeof authBody === 'object') {
-          authBody = encoder('join', inflates, authBody)
-        }
-        this.send(authBody)
+        this.send(authBody instanceof Uint8Array ? authBody : encoder('join', authBody))
       } else {
         const hi: {
           uid: number
@@ -107,32 +114,56 @@ export class Live extends NiceEventEmitter {
         if (buvid) {
           hi.buvid = buvid
         }
-        const buf = encoder('join', inflates, hi)
+        const buf = encoder('join', hi)
         this.send(buf)
       }
     })
 
-    this.on('close', () => {
+    this.addEventListener('close', () => {
       clearTimeout(this.timeout)
     })
 
-    this.on('_error', error => {
+    this.addEventListener('_error', () => {
       this.close()
-      this.emit('error', error)
+      this.dispatchEvent(new Event('error'))
     })
   }
 
+  dispatchEvent(event: Event): boolean {
+    const result = super.dispatchEvent(event)
+    super.dispatchEvent(new EventEvent(event))
+    return result
+  }
+
   heartbeat() {
-    this.send(encoder('heartbeat', this.inflates))
+    this.send(encoder('heartbeat'))
   }
 
   getOnline() {
     this.heartbeat()
-    return new Promise<number>(resolve => this.once('heartbeat', resolve))
+    return new Promise<number>(resolve =>
+      this.addEventListener('heartbeat', e => resolve((e as DataEvent<number>).data), { once: true })
+    )
+  }
+
+  on<T = unknown>(
+    type: string,
+    listener: (event: DataEvent<T>) => void,
+    options?: boolean | AddEventListenerOptions
+  ): void {
+    this.addEventListener(type, listener as EventListener, options)
+  }
+
+  off<T = unknown>(
+    type: string,
+    listener: (event: DataEvent<T>) => void,
+    options?: boolean | EventListenerOptions
+  ): void {
+    this.removeEventListener(type, listener as EventListener, options)
   }
 }
 
-export class KeepLive<Base extends typeof Live> extends EventEmitter {
+export class KeepLive<Base extends typeof Live> extends EventTarget {
   params: ConstructorParameters<Base>
   closed: boolean
   interval: number
@@ -151,6 +182,12 @@ export class KeepLive<Base extends typeof Live> extends EventEmitter {
     this.connect(false)
   }
 
+  dispatchEvent(event: Event): boolean {
+    const result = super.dispatchEvent(event)
+    super.dispatchEvent(new EventEvent(event))
+    return result
+  }
+
   connect(reconnect = true) {
     if (reconnect) {
       this.connection.close()
@@ -160,31 +197,36 @@ export class KeepLive<Base extends typeof Live> extends EventEmitter {
 
     let timeout = setTimeout(() => {
       connection.close()
-      connection.emit('timeout')
+      connection.dispatchEvent(new Event('timeout'))
     }, this.timeout)
 
-    connection.on(relayEvent, (eventName: string, ...params: any[]) => {
-      if (eventName !== 'error') {
-        this.emit(eventName, ...params)
+    connection.addEventListener('event', e => {
+      const evt = (e as EventEvent).event
+      if (evt.type !== 'error') {
+        if (evt instanceof DataEvent) {
+          this.dispatchEvent(new DataEvent(evt.type, evt.data))
+        } else {
+          this.dispatchEvent(new Event(evt.type))
+        }
       }
     })
 
-    connection.on('error', e => this.emit('e', e))
-    connection.on('close', () => {
+    connection.addEventListener('error', () => this.dispatchEvent(new Event('e')))
+    connection.addEventListener('close', () => {
       if (!this.closed) {
         setTimeout(() => this.connect(), this.interval)
       }
     })
 
-    connection.on('heartbeat', () => {
+    connection.addEventListener('heartbeat', () => {
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         connection.close()
-        connection.emit('timeout')
+        connection.dispatchEvent(new Event('timeout'))
       }, this.timeout)
     })
 
-    connection.on('close', () => {
+    connection.addEventListener('close', () => {
       clearTimeout(timeout)
     })
   }
@@ -210,7 +252,23 @@ export class KeepLive<Base extends typeof Live> extends EventEmitter {
     return this.connection.getOnline()
   }
 
-  send(data: Buffer) {
+  send(data: Uint8Array) {
     return this.connection.send(data)
+  }
+
+  on<T = unknown>(
+    type: string,
+    listener: (event: DataEvent<T>) => void,
+    options?: boolean | AddEventListenerOptions
+  ): void {
+    this.addEventListener(type, listener as EventListener, options)
+  }
+
+  off<T = unknown>(
+    type: string,
+    listener: (event: DataEvent<T>) => void,
+    options?: boolean | EventListenerOptions
+  ): void {
+    this.removeEventListener(type, listener as EventListener, options)
   }
 }

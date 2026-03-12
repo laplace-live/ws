@@ -1,6 +1,6 @@
 {
   "name": "@laplace.live/ws",
-  "version": "6.3.5",
+  "version": "6.3.8",
   "description": "Bilibili Live WebSocket/TCP API",
   "type": "module",
   "main": "./dist/index.js",
@@ -60,8 +60,6 @@
     "provenance": true
   },
   "dependencies": {
-    "buffer": "^6.0.3",
-    "events": "^3.3.0",
     "pako": "^2.1.0",
     "ws": "^8.19.0"
   },

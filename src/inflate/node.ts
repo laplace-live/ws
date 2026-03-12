@@ -1,11 +1,10 @@
 import { promisify } from 'node:util'
 import { brotliDecompress, inflate } from 'node:zlib'
-import { Buffer } from 'buffer'
 
-const inflateAsync = promisify<Parameters<typeof inflate>[0], Parameters<Parameters<typeof inflate>[2]>[1]>(inflate)
-const brotliDecompressAsync = promisify<
-  Parameters<typeof brotliDecompress>[0],
-  Parameters<Parameters<typeof brotliDecompress>[1]>[1]
->(brotliDecompress)
+const _inflate = promisify(inflate)
+const _brotli = promisify(brotliDecompress)
 
-export const inflates = { inflateAsync, brotliDecompressAsync, Buffer }
+const inflateAsync = (b: Uint8Array) => _inflate(b) as Promise<Uint8Array>
+const brotliDecompressAsync = (b: Uint8Array) => _brotli(b) as Promise<Uint8Array>
+
+export const inflates = { inflateAsync, brotliDecompressAsync }

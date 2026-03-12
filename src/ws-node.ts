@@ -1,51 +1,22 @@
 import type { Agent } from 'node:http'
-import { EventEmitter } from 'events'
 import WS from 'ws'
 
 import type { Inflates } from './buffer.ts'
 
-import { Live, type LiveOptions } from './common.ts'
+import { DataEvent, Live, type LiveOptions } from './common.ts'
 
 export type WSOptions = LiveOptions & { address?: string; agent?: Agent }
 
-class WSWrapper extends EventEmitter {
-  ws: WS
-
-  constructor(address: string, ...args: any[]) {
-    super()
-
-    const ws = new WS(address, ...args)
-    this.ws = ws
-
-    ws.onopen = () => this.emit('open')
-    ws.onmessage = ({ data }) => this.emit('message', data)
-    ws.onerror = () => this.emit('error')
-    ws.onclose = () => this.emit('close')
-  }
-
-  get readyState() {
-    return this.ws.readyState
-  }
-
-  send(data: Buffer) {
-    this.ws.send(data)
-  }
-
-  close(code?: number, data?: string) {
-    this.ws.close(code, data)
-  }
-}
-
 export class LiveWSBase extends Live {
-  ws: WSWrapper
+  ws: WS
 
   constructor(
     inflates: Inflates,
     roomid: number,
     { address = 'wss://broadcastlv.chat.bilibili.com/sub', agent, ...options }: WSOptions = {}
   ) {
-    const ws = new WSWrapper(address, { agent })
-    const send = (data: Buffer) => {
+    const ws = new WS(address, { agent })
+    const send = (data: Uint8Array) => {
       if (ws.readyState === 1) {
         ws.send(data)
       }
@@ -54,10 +25,10 @@ export class LiveWSBase extends Live {
 
     super(inflates, roomid, { send, close, ...options })
 
-    ws.on('open', (...params) => this.emit('open', ...params))
-    ws.on('message', data => this.emit('message', data as Buffer))
-    ws.on('close', (code, reason) => this.emit('close', code, reason))
-    ws.on('error', error => this.emit('_error', error))
+    ws.on('open', () => this.dispatchEvent(new Event('open')))
+    ws.on('message', (data: Buffer) => this.dispatchEvent(new DataEvent('message', data as Uint8Array)))
+    ws.on('close', () => this.dispatchEvent(new Event('close')))
+    ws.on('error', () => this.dispatchEvent(new Event('_error')))
 
     this.ws = ws
   }

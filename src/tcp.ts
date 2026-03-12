@@ -2,13 +2,13 @@ import net, { type Socket } from 'node:net'
 
 import type { Inflates } from './buffer.ts'
 
-import { Live, type LiveOptions } from './common.ts'
+import { DataEvent, Live, type LiveOptions } from './common.ts'
 
 export type TCPOptions = LiveOptions & { host?: string; port?: number }
 
 export class LiveTCPBase extends Live {
   socket: Socket
-  buffer: Buffer
+  buf: Buffer
   i: number
 
   constructor(
@@ -17,7 +17,7 @@ export class LiveTCPBase extends Live {
     { host = 'broadcastlv.chat.bilibili.com', port = 2243, ...options }: TCPOptions = {}
   ) {
     const socket = net.connect(port, host)
-    const send = (data: Buffer) => {
+    const send = (data: Uint8Array) => {
       socket.write(data)
     }
     const close = () => this.socket.end()
@@ -25,29 +25,29 @@ export class LiveTCPBase extends Live {
     super(inflates, roomid, { send, close, ...options })
 
     this.i = 0
-    this.buffer = Buffer.alloc(0)
+    this.buf = Buffer.alloc(0)
 
-    socket.on('ready', () => this.emit('open'))
-    socket.on('close', () => this.emit('close'))
-    socket.on('error', (...params) => this.emit('_error', ...params))
+    socket.on('ready', () => this.dispatchEvent(new Event('open')))
+    socket.on('close', () => this.dispatchEvent(new Event('close')))
+    socket.on('error', () => this.dispatchEvent(new Event('_error')))
     socket.on('data', buffer => {
-      this.buffer = Buffer.concat([this.buffer, buffer])
+      this.buf = Buffer.concat([this.buf, buffer])
       this.splitBuffer()
     })
     this.socket = socket
   }
 
   splitBuffer() {
-    while (this.buffer.length >= 4 && this.buffer.readInt32BE(0) <= this.buffer.length) {
-      const size = this.buffer.readInt32BE(0)
-      const pack = this.buffer.slice(0, size)
-      this.buffer = this.buffer.slice(size)
+    while (this.buf.length >= 4 && this.buf.readInt32BE(0) <= this.buf.length) {
+      const size = this.buf.readInt32BE(0)
+      const pack = this.buf.slice(0, size)
+      this.buf = this.buf.slice(size)
       this.i++
       if (this.i > 5) {
         this.i = 0
-        this.buffer = Buffer.from(this.buffer)
+        this.buf = Buffer.from(this.buf)
       }
-      this.emit('message', pack)
+      this.dispatchEvent(new DataEvent('message', pack as Uint8Array))
     }
   }
 }
