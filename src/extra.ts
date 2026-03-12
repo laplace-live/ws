@@ -18,16 +18,30 @@ type GET_DANMU_INFO = {
   }
 }
 
+/**
+ * This no longer works as bilibili rises the risk control level
+ * You need to use external service to get the conf
+ */
 export const getConf = async (roomid: number) => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const raw = await fetch(`https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${roomid}`).then(w => w.json()) as GET_DANMU_INFO
-  const { data: { token: key, host_list: [{ host }] } } = raw
+  const raw = (await fetch(`https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${roomid}`).then(w =>
+    w.json()
+  )) as GET_DANMU_INFO
+  if (!raw.data) {
+    throw new Error(`getConf failed for room ${roomid}: ${raw.message || 'no data'} (code: ${raw.code})`)
+  }
+  const {
+    data: {
+      token: key,
+      host_list: [{ host }],
+    },
+  } = raw
   const address = `wss://${host}/sub`
   return { key, host, address, raw }
 }
 
 export const getRoomid = async (short: number) => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { data: { room_id } } = await fetch(`https://api.live.bilibili.com/room/v1/Room/mobileRoomInit?id=${short}`).then(w => w.json())
+  const {
+    data: { room_id },
+  } = await fetch(`https://api.live.bilibili.com/room/v1/Room/mobileRoomInit?id=${short}`).then(w => w.json())
   return room_id
 }
