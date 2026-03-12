@@ -8,7 +8,7 @@ This project is based on [bilibili-live-ws](https://github.com/simon300000/bilib
 - Uses web-standard `EventTarget`/`Event` instead of Node.js `EventEmitter` polyfills
 - Uses native `WebSocket` API directly, removing `isomorphic-ws` and `ws` dependencies
 - No `Buffer` polyfills
-- Typed `on<T>()`/`off<T>()` convenience methods
+- Typed `on<T>()`/`off<T>()` convenience methods (also supports raw `addEventListener` since all classes extend `EventTarget`)
 - Conditional `exports` field with `./server`, `./client`, `./browser` sub-path exports
 
 ## Install
@@ -46,28 +46,6 @@ const live = new KeepLiveWS(25034104, { key: "...", address: "wss://..." });
 live.on<BilibiliInternal.WebSocket.Prod.DANMU_MSG>("DANMU_MSG", ({ data }) =>
   console.log("DANMU_MSG msg_id", data.msg_id),
 );
-```
-
-### Using addEventListener
-
-Since `LiveWS` and `KeepLiveWS` extend `EventTarget`, you can also use the
-standard `addEventListener` API. Events carrying data are instances of
-`LaplaceRawEvent<T>`, which extends `Event` with a typed `data` property.
-
-```typescript
-import { LiveWS, LaplaceRawEvent } from "@laplace.live/ws";
-
-const live = new LiveWS(25034104, { key: "...", address: "wss://..." });
-
-live.addEventListener("heartbeat", (e) => {
-  const online = (e as LaplaceRawEvent<number>).data;
-  console.log("Online:", online);
-});
-
-live.addEventListener("DANMU_MSG", (e) => {
-  const data = (e as LaplaceRawEvent<unknown>).data;
-  console.log("Danmaku:", data);
-});
 ```
 
 ### TCP (Node.js / Bun only)
