@@ -1,5 +1,3 @@
-import 'array-flat-polyfill'
-
 export type { Buffer } from 'buffer'
 export type Inflates = { inflateAsync: (b: Buffer) => Buffer | Promise<Buffer>, brotliDecompressAsync: (b: Buffer) => Buffer | Promise<Buffer>, Buffer: typeof Buffer }
 

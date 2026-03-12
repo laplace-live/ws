@@ -1,11 +1,14 @@
-import { inflates } from './inflate/node'
-import { LiveWSBase, WSOptions } from './ws'
-import { LiveTCPBase, TCPOptions } from './tcp'
-import { KeepLive } from './common'
+import { KeepLive } from './common.ts'
+import { inflates } from './inflate/node.ts'
+import { LiveTCPBase, type TCPOptions } from './tcp.ts'
+import { LiveWSBase, type WSOptions } from './ws-node.ts'
 
-export { getConf, getRoomid } from './extra'
-export { TCPOptions, WSOptions }
-export { LiveOptions, relayEvent } from './common'
+export type { LiveOptions } from './common.ts'
+export type { TCPOptions } from './tcp.ts'
+export type { WSOptions } from './ws-node.ts'
+
+export { relayEvent } from './common.ts'
+export { getConf, getRoomid } from './extra.ts'
 
 export class LiveWS extends LiveWSBase {
   constructor(roomid: number, opts?: WSOptions) {
@@ -24,7 +27,6 @@ export class KeepLiveWS extends KeepLive<typeof LiveWSBase> {
     super(LiveWSBase, inflates, roomid, opts)
   }
 }
-
 
 export class KeepLiveTCP extends KeepLive<typeof LiveTCPBase> {
   constructor(roomid: number, opts?: TCPOptions) {

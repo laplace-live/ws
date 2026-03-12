@@ -1,16 +1,21 @@
-import net, { Socket } from 'net'
+import net, { type Socket } from 'node:net'
 
-import { Inflates } from './buffer'
-import { LiveOptions, Live } from './common'
+import type { Inflates } from './buffer.ts'
 
-export type TCPOptions = LiveOptions & { host?: string, port?: number }
+import { Live, type LiveOptions } from './common.ts'
+
+export type TCPOptions = LiveOptions & { host?: string; port?: number }
 
 export class LiveTCPBase extends Live {
   socket: Socket
   buffer: Buffer
   i: number
 
-  constructor(inflates: Inflates, roomid: number, { host = 'broadcastlv.chat.bilibili.com', port = 2243, ...options}: TCPOptions = {}) {
+  constructor(
+    inflates: Inflates,
+    roomid: number,
+    { host = 'broadcastlv.chat.bilibili.com', port = 2243, ...options }: TCPOptions = {}
+  ) {
     const socket = net.connect(port, host)
     const send = (data: Buffer) => {
       socket.write(data)

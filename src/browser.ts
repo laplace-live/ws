@@ -1,18 +1,20 @@
-import { inflates } from './inflate/browser'
-import { LiveWSBase, WSOptions } from './ws'
-import { KeepLive } from './common'
+import { KeepLive } from './common.ts'
+import { inflates } from './inflate/browser.ts'
+import { LiveWSBase, type WSOptions } from './ws-client.ts'
 
-export { WSOptions }
-export { LiveOptions, relayEvent } from './common'
+export type { LiveOptions } from './common.ts'
+export type { WSOptions } from './ws-client.ts'
+
+export { relayEvent } from './common.ts'
 
 export class LiveWS extends LiveWSBase {
   constructor(roomid: number, opts?: WSOptions) {
-    super(inflates as any, roomid, opts)
+    super(inflates, roomid, opts)
   }
 }
 
 export class KeepLiveWS extends KeepLive<typeof LiveWSBase> {
   constructor(roomid: number, opts?: WSOptions) {
-    super(LiveWSBase, inflates as any, roomid, opts)
+    super(LiveWSBase, inflates, roomid, opts)
   }
 }
