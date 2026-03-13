@@ -8,7 +8,7 @@ This project is based on [bilibili-live-ws](https://github.com/simon300000/bilib
 - Uses web-standard `EventTarget`/`Event` instead of Node.js `EventEmitter` polyfills
 - Uses native `WebSocket` API directly, removing `isomorphic-ws` and `ws` dependencies
 - No `Buffer` polyfills
-- Typed `addEventListener` via `LiveEventMap` with [`@laplace.live/internal`](https://github.com/laplace-live/internal) types
+- Typed `addEventListener` via `LiveEventMap` with `@laplace.live/internal` types
 - Conditional `exports` field with `./server`, `./client`, `./browser` sub-path exports
 
 ## Install
