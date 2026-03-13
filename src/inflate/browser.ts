@@ -1,9 +1,9 @@
 import { BrotliDecode } from './brotli.ts'
 
-const inflateAsync = async (d: Uint8Array) => {
+const inflateAsync = async (d: Uint8Array<ArrayBuffer>) => {
   const ds = new DecompressionStream('deflate')
   const writer = ds.writable.getWriter()
-  await writer.write(new Uint8Array(d))
+  await writer.write(d)
   await writer.close()
   return new Uint8Array(await new Response(ds.readable).arrayBuffer())
 }

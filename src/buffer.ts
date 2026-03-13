@@ -6,8 +6,8 @@
  * - **Browser**: backed by `pako` (inflate) + a bundled JS Brotli decoder.
  */
 export type Inflates = {
-  inflateAsync: (b: Uint8Array) => Uint8Array | Promise<Uint8Array>
-  brotliDecompressAsync: (b: Uint8Array) => Uint8Array | Promise<Uint8Array>
+  inflateAsync: (b: Uint8Array<ArrayBuffer>) => Uint8Array | Promise<Uint8Array>
+  brotliDecompressAsync: (b: Uint8Array<ArrayBuffer>) => Uint8Array | Promise<Uint8Array>
 }
 
 const textEncoder = new TextEncoder()
