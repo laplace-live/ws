@@ -4,7 +4,7 @@ import type { LaplaceRawEvent } from '../src/events.ts'
 import type { Live } from '../src/live.ts'
 import type { WSOptions } from '../src/ws.ts'
 
-import { acquireAuthBody, sendDanmaku, TEST_LOGIN_SYNC_TOKEN, TEST_ROOM } from './utils.ts'
+import { acquireAuthBody, randomDanmaku, sendDanmaku, TEST_LOGIN_SYNC_TOKEN, TEST_ROOM } from './utils.ts'
 
 type LiveWSConstructor = new (roomid: number, opts?: WSOptions) => Live
 type KeepLiveWSConstructor = new (
@@ -151,7 +151,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
         })
       })
 
-      const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
+      const content = randomDanmaku()
       await sendDanmaku(TEST_ROOM, content)
 
       const received = await new Promise<string>((resolve, reject) => {
@@ -180,7 +180,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
         })
       })
 
-      const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
+      const content = randomDanmaku()
       await sendDanmaku(TEST_ROOM, content)
 
       const received = await new Promise<string>((resolve, reject) => {

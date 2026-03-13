@@ -8,7 +8,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { type Browser, chromium, type Page } from 'playwright'
 
-import { acquireAuthBody, sendDanmaku, TEST_LOGIN_SYNC_TOKEN, TEST_ROOM } from './utils.ts'
+import { acquireAuthBody, randomDanmaku, sendDanmaku, TEST_LOGIN_SYNC_TOKEN, TEST_ROOM } from './utils.ts'
 
 interface BrowserLive {
   live: boolean
@@ -263,7 +263,7 @@ describe('browser LiveWS protover 2', () => {
 
 describe('browser LiveWS send danmaku', () => {
   test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS', async () => {
-    const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
+    const content = randomDanmaku()
 
     await page.evaluate(
       async ({ address, authBody, roomid }) => {
@@ -323,7 +323,7 @@ describe('browser LiveWS send danmaku', () => {
   })
 
   test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS with protover 2', async () => {
-    const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
+    const content = randomDanmaku()
 
     await page.evaluate(
       async ({ address, authBody, roomid }) => {

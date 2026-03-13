@@ -3,6 +3,13 @@ import type { BilibiliInternal } from '@laplace.live/internal'
 export const TEST_ROOM = 456117
 export const TEST_LOGIN_SYNC_TOKEN = process.env.TEST_LOGIN_SYNC_TOKEN
 
+const DANMAKU_CHARS = '哈呵嘿绿喵呜啊吼噗呀嘻嘎咩哦嗯唔耶咦哟喔'
+
+export function randomDanmaku(len = 4) {
+  const randomChars = Array.from({ length: len }, () => DANMAKU_CHARS[Math.floor(Math.random() * DANMAKU_CHARS.length)])
+  return `テスト${randomChars.join('')}`
+}
+
 /**
  * Acquire a valid authBody from the Laplace proxy, following the same
  * pattern as references/createRoomConnection.ts.
