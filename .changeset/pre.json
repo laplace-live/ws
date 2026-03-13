@@ -5,6 +5,7 @@
     "@laplace.live/ws": "7.1.4"
   },
   "changesets": [
+    "deep-glasses-show",
     "full-terms-teach"
   ]
 }
