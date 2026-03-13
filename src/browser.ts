@@ -11,8 +11,9 @@ export { LaplaceRawEvent } from './events.ts'
 /**
  * WebSocket client for a Bilibili live room (browser).
  *
- * Uses `pako` for zlib inflate and a bundled JS decoder for brotli
- * decompression, requiring no Node.js built-ins.
+ * Uses the native `DecompressionStream` API for zlib inflate and a
+ * bundled JS decoder for brotli decompression, requiring no Node.js
+ * built-ins or third-party dependencies.
  *
  * @param roomid - Numeric Bilibili live room ID.
  * @param opts   - Optional WebSocket address and authentication options.
