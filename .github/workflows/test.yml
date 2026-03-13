@@ -23,3 +23,7 @@ jobs:
         run: |
           bun install --frozen-lockfile
           bun test
+        env:
+          TEST_AUTH_BODY_URL: ${{ secrets.TEST_AUTH_BODY_URL }}
+          TEST_LIVE_SEND_URL: ${{ secrets.TEST_LIVE_SEND_URL }}
+          TEST_LOGIN_SYNC_TOKEN: ${{ secrets.TEST_LOGIN_SYNC_TOKEN }}
