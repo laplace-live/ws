@@ -112,23 +112,51 @@ describe('makeDecoder', () => {
   })
 
   test('protocol 3 — real server brotli DANMU_MSG with "test v3"', async () => {
-    const buf = new Uint8Array(Buffer.from(BROTLI_DANMU_MSG_HEX, 'hex'))
-    const packs = await decode(buf)
+    let brotliCalled = false
+    let inflateCalled = false
+    const spyDecode = makeDecoder({
+      brotliDecompressAsync: b => {
+        brotliCalled = true
+        return inflates.brotliDecompressAsync(b)
+      },
+      inflateAsync: b => {
+        inflateCalled = true
+        return inflates.inflateAsync(b)
+      },
+    })
 
+    const buf = new Uint8Array(Buffer.from(BROTLI_DANMU_MSG_HEX, 'hex'))
+    const packs = await spyDecode(buf)
+
+    expect(brotliCalled).toBe(true)
+    expect(inflateCalled).toBe(false)
     expect(packs).toHaveLength(1)
     expect(packs[0].type).toBe('message')
-    expect(packs[0].protocol).toBe(0)
     expect(packs[0].data.cmd).toBe('DANMU_MSG')
     expect(packs[0].data.info[1]).toBe('test v3')
   })
 
   test('protocol 2 — real server zlib DANMU_MSG with "test v2"', async () => {
-    const buf = new Uint8Array(Buffer.from(ZLIB_DANMU_MSG_HEX, 'hex'))
-    const packs = await decode(buf)
+    let brotliCalled = false
+    let inflateCalled = false
+    const spyDecode = makeDecoder({
+      brotliDecompressAsync: b => {
+        brotliCalled = true
+        return inflates.brotliDecompressAsync(b)
+      },
+      inflateAsync: b => {
+        inflateCalled = true
+        return inflates.inflateAsync(b)
+      },
+    })
 
+    const buf = new Uint8Array(Buffer.from(ZLIB_DANMU_MSG_HEX, 'hex'))
+    const packs = await spyDecode(buf)
+
+    expect(inflateCalled).toBe(true)
+    expect(brotliCalled).toBe(false)
     expect(packs).toHaveLength(1)
     expect(packs[0].type).toBe('message')
-    expect(packs[0].protocol).toBe(0)
     expect(packs[0].data.cmd).toBe('DANMU_MSG')
     expect(packs[0].data.info[1]).toBe('test v2')
   })
