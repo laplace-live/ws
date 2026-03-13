@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.5-beta.1
+
+### Patch Changes
+
+- fae81dd: pako removal
+
 ## 7.1.5-beta.0
 
 ### Patch Changes
