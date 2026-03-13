@@ -79,3 +79,6 @@ typings/
 .fusebox/
 
 references/
+
+# Browser E2E test build artifacts
+test/.browser-e2e-dist/

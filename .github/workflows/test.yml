@@ -19,10 +19,11 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - name: bun install and test
-        run: |
-          bun install --frozen-lockfile
-          bun test
+      - run: bun install --frozen-lockfile
+
+      - run: bunx playwright install chromium --with-deps
+
+      - run: bun test
         env:
           TEST_AUTH_BODY_URL: ${{ secrets.TEST_AUTH_BODY_URL }}
           TEST_LIVE_SEND_URL: ${{ secrets.TEST_LIVE_SEND_URL }}
