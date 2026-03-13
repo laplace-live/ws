@@ -1,6 +1,6 @@
 # @laplace.live/ws
 
-Bilibili Live WebSocket/TCP API. Browser support via `@laplace.live/ws/browser`
+LAPLACE Live! flavored bilibili live WebSocket/TCP API.
 
 This project is based on [bilibili-live-ws](https://github.com/simon300000/bilibili-live-ws) and has the exact same API as the original project, with the following differences:
 
@@ -48,7 +48,7 @@ live.addEventListener<{ custom: string }>("NEW_CMD", ({ data }) =>
 ### Browser
 
 ```typescript
-import { LiveWS, KeepLiveWS } from "@laplace.live/ws/browser";
+import { LiveWS, KeepLiveWS } from "@laplace.live/ws/client";
 
 const live = new LiveWS(25034104, { key: "...", address: "wss://..." });
 live.addEventListener("DANMU_MSG", ({ data }) => console.log(data.msg_id));
@@ -67,7 +67,7 @@ keep.addEventListener("DANMU_MSG", ({ data }) => console.log(data.msg_id));
 ### TCP (Node.js / Bun only)
 
 ```typescript
-import { LiveTCP } from "@laplace.live/ws";
+import { LiveTCP } from "@laplace.live/ws/server";
 
 const live = new LiveTCP(25034104, { key: "..." });
 live.addEventListener("heartbeat", ({ data }) => console.log("Online:", data));
