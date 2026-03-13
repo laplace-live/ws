@@ -3,6 +3,7 @@ import { brotliCompressSync, deflateSync } from 'node:zlib'
 
 import { encoder, makeDecoder } from '../src/buffer.ts'
 import { inflates } from '../src/inflate/node.ts'
+import { BROTLI_DANMU_MSG_HEX, ZLIB_DANMU_MSG_HEX } from './const.ts'
 
 const textEncoder = new TextEncoder()
 
@@ -108,6 +109,28 @@ describe('makeDecoder', () => {
     expect(packs).toHaveLength(1)
     expect(packs[0].type).toBe('message')
     expect(packs[0].data).toEqual(payload)
+  })
+
+  test('protocol 3 — real server brotli DANMU_MSG with "test v3"', async () => {
+    const buf = new Uint8Array(Buffer.from(BROTLI_DANMU_MSG_HEX, 'hex'))
+    const packs = await decode(buf)
+
+    expect(packs).toHaveLength(1)
+    expect(packs[0].type).toBe('message')
+    expect(packs[0].protocol).toBe(0)
+    expect(packs[0].data.cmd).toBe('DANMU_MSG')
+    expect(packs[0].data.info[1]).toBe('test v3')
+  })
+
+  test('protocol 2 — real server zlib DANMU_MSG with "test v2"', async () => {
+    const buf = new Uint8Array(Buffer.from(ZLIB_DANMU_MSG_HEX, 'hex'))
+    const packs = await decode(buf)
+
+    expect(packs).toHaveLength(1)
+    expect(packs[0].type).toBe('message')
+    expect(packs[0].protocol).toBe(0)
+    expect(packs[0].data.cmd).toBe('DANMU_MSG')
+    expect(packs[0].data.info[1]).toBe('test v2')
   })
 
   test('unknown operation keeps type as "unknow"', async () => {
