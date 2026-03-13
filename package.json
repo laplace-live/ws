@@ -1,6 +1,6 @@
 {
   "name": "@laplace.live/ws",
-  "version": "7.1.1",
+  "version": "7.1.2",
   "description": "Bilibili Live WebSocket/TCP API",
   "type": "module",
   "main": "./dist/index.js",
