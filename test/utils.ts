@@ -1,15 +1,6 @@
-export const TEST_ROOM = 5050
+import type { BilibiliInternal } from '@laplace.live/internal'
 
-export type RoomConnInfo = {
-  code: number
-  message: string
-  data: {
-    token: string
-    host_list: { host: string; port: number; wss_port: number; ws_port: number }[]
-    fetcher: number
-    ack: string
-  }
-}
+export const TEST_ROOM = 5050
 
 /**
  * Acquire a valid authBody from the Laplace proxy, following the same
@@ -22,7 +13,7 @@ export async function acquireAuthBody(roomid: number) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
   })
-  const json: RoomConnInfo = await resp.json()
+  const json: BilibiliInternal.HTTPS.Prod.GetDanmuInfo = await resp.json()
 
   if (!json.data) {
     throw new Error(`Failed to fetch room connection info for room ${roomid}`)

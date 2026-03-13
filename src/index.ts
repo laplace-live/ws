@@ -75,9 +75,9 @@ export class LiveTCP extends LiveTCPBase {
  * keep.on('DANMU_MSG', (e) => console.log(e.data))
  * ```
  */
-export class KeepLiveWS extends KeepLive<typeof LiveWSBase> {
+export class KeepLiveWS extends KeepLive<LiveWSBase> {
   constructor(roomid: number, opts?: WSOptions) {
-    super(LiveWSBase, inflates, roomid, opts)
+    super(() => new LiveWSBase(inflates, roomid, opts))
   }
 }
 
@@ -100,8 +100,8 @@ export class KeepLiveWS extends KeepLive<typeof LiveWSBase> {
  * keep.on('heartbeat', (e) => console.log('online:', e.data))
  * ```
  */
-export class KeepLiveTCP extends KeepLive<typeof LiveTCPBase> {
+export class KeepLiveTCP extends KeepLive<LiveTCPBase> {
   constructor(roomid: number, opts?: TCPOptions) {
-    super(LiveTCPBase, inflates, roomid, opts)
+    super(() => new LiveTCPBase(inflates, roomid, opts))
   }
 }

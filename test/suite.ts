@@ -14,6 +14,7 @@ type KeepLiveWSConstructor = new (
   roomid: number
   online: number
   closed: boolean
+  connection: Live
   close(): void
   addEventListener<T = unknown>(
     type: string,
@@ -159,6 +160,31 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       keep.close()
       expect(keep.closed).toBe(true)
+    })
+
+    test('should reconnect after the inner connection is closed', async () => {
+      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+      const keep = new KeepLiveWS(TEST_ROOM, { address, authBody })
+
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => { keep.close(); reject(new Error('Timeout waiting for first heartbeat')) }, 4000)
+        keep.addEventListener('heartbeat', () => { clearTimeout(timer); resolve() })
+      })
+
+      const firstConnection = keep.connection
+      firstConnection.close()
+
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => { keep.close(); reject(new Error('Timeout waiting for reconnect heartbeat')) }, 8000)
+        keep.addEventListener('heartbeat', () => { clearTimeout(timer); resolve() })
+      })
+
+      expect(keep.connection).not.toBe(firstConnection)
+      expect(keep.roomid).toBe(TEST_ROOM)
+      expect(typeof keep.online).toBe('number')
+
+      keep.close()
     })
   })
 }

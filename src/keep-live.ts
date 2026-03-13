@@ -10,8 +10,7 @@ import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
  * the connection drops or a heartbeat timeout is reached. All events from
  * the inner connection are forwarded to this instance.
  *
- * @typeParam Base - The concrete {@link Live} subclass to manage
- *                   (e.g. `typeof LiveWSBase` or `typeof LiveTCPBase`).
+ * @typeParam T - The concrete {@link Live} instance type being managed.
  *
  * @example
  * ```ts
@@ -20,9 +19,9 @@ import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
  * keep.addEventListener('DANMU_MSG', ({ data }) => console.log('danmaku:', data.msg_id))
  * ```
  */
-export class KeepLive<Base extends typeof Live> extends EventTarget {
-  /** @internal Stored constructor arguments for reconnection. */
-  params: ConstructorParameters<Base>
+export class KeepLive<T extends Live> extends EventTarget {
+  /** @internal Factory that creates a fresh connection with the original arguments. */
+  private createConnection: () => T
   /** `true` after {@link close} has been called; prevents further reconnects. */
   closed: boolean
   /** Delay in milliseconds before attempting a reconnect. */
@@ -30,18 +29,15 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
   /** Maximum milliseconds to wait for a heartbeat before forcing a reconnect. */
   timeout: number
   /** The current underlying connection instance. */
-  connection: InstanceType<Base>
-  /** @internal The base class constructor used to create new connections. */
-  Base: Base
+  connection: T
 
-  constructor(Base: Base, ...params: ConstructorParameters<Base>) {
+  constructor(createConnection: () => T) {
     super()
-    this.params = params
+    this.createConnection = createConnection
     this.closed = false
     this.interval = 100
     this.timeout = 45 * 1000
-    this.connection = new (Base as any)(...this.params)
-    this.Base = Base
+    this.connection = this.createConnection()
     this.connect(false)
   }
 
@@ -58,14 +54,14 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
   /**
    * Wire up event forwarding and timeout handling on the current connection.
    * When `reconnect` is `true`, the previous connection is closed and a fresh
-   * one is created from the stored constructor parameters.
+   * one is created via the factory.
    *
    * @param reconnect - Whether to tear down and recreate the connection first.
    */
   connect(reconnect = true) {
     if (reconnect) {
       this.connection.close()
-      this.connection = new (this.Base as any)(...this.params)
+      this.connection = this.createConnection()
     }
     const connection = this.connection
 
