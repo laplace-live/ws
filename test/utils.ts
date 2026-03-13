@@ -6,7 +6,7 @@ export const TEST_ROOM = 5050
  * Acquire a valid authBody from the Laplace proxy, following the same
  * pattern as references/createRoomConnection.ts.
  */
-export async function acquireAuthBody(roomid: number) {
+export async function acquireAuthBody(roomid: number, protover: 2 | 3 = 3) {
   const url = `https://workers.laplace.cn/bilibili/room-conn-info-v2/${roomid}`
   const resp = await fetch(url, {
     method: 'POST',
@@ -27,7 +27,7 @@ export async function acquireAuthBody(roomid: number) {
     authBody: {
       uid: json.data.fetcher || 0,
       roomid,
-      protover: 3,
+      protover,
       buvid: json.data.ack || '',
       support_ack: true,
       queue_uuid: Math.random().toString(36).slice(-8),

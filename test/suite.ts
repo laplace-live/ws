@@ -128,6 +128,59 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
       expect(online).toBeGreaterThanOrEqual(0)
     })
 
+    test('should connect with protover 2 and fire live event', async () => {
+      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
+
+      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
+      connections.push(live)
+
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
+        live.addEventListener('live', () => {
+          clearTimeout(timer)
+          resolve()
+        })
+      })
+
+      expect(live.live).toBe(true)
+      expect(live.roomid).toBe(TEST_ROOM)
+    })
+
+    test('should receive heartbeat with protover 2', async () => {
+      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
+
+      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
+      connections.push(live)
+
+      const online = await new Promise<number>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
+        live.addEventListener('heartbeat', e => {
+          clearTimeout(timer)
+          resolve(e.data)
+        })
+      })
+
+      expect(typeof online).toBe('number')
+      expect(online).toBeGreaterThanOrEqual(0)
+    })
+
+    test('should receive at least one msg event with protover 2', async () => {
+      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
+
+      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
+      connections.push(live)
+
+      const msg = await new Promise<unknown>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for msg')), 4000)
+        live.addEventListener('msg', e => {
+          clearTimeout(timer)
+          resolve(e.data)
+        })
+      })
+
+      expect(msg).toBeDefined()
+    })
+
     test('throws for NaN roomid', () => {
       expect(() => new LiveWS(NaN)).toThrow('must be Number not NaN')
     })
@@ -168,16 +221,28 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
       const keep = new KeepLiveWS(TEST_ROOM, { address, authBody })
 
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => { keep.close(); reject(new Error('Timeout waiting for first heartbeat')) }, 4000)
-        keep.addEventListener('heartbeat', () => { clearTimeout(timer); resolve() })
+        const timer = setTimeout(() => {
+          keep.close()
+          reject(new Error('Timeout waiting for first heartbeat'))
+        }, 4000)
+        keep.addEventListener('heartbeat', () => {
+          clearTimeout(timer)
+          resolve()
+        })
       })
 
       const firstConnection = keep.connection
       firstConnection.close()
 
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => { keep.close(); reject(new Error('Timeout waiting for reconnect heartbeat')) }, 8000)
-        keep.addEventListener('heartbeat', () => { clearTimeout(timer); resolve() })
+        const timer = setTimeout(() => {
+          keep.close()
+          reject(new Error('Timeout waiting for reconnect heartbeat'))
+        }, 8000)
+        keep.addEventListener('heartbeat', () => {
+          clearTimeout(timer)
+          resolve()
+        })
       })
 
       expect(keep.connection).not.toBe(firstConnection)
