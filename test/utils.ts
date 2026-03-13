@@ -4,7 +4,7 @@ export const TEST_ROOM = 456117
 export const TEST_LOGIN_SYNC_TOKEN = process.env.TEST_LOGIN_SYNC_TOKEN
 
 // Uses Man'yogana
-const DANMAKU_CHARS = '阿伊宇江於加幾久介己散之須世曾多千川天止奈仁奴祢乃八比不部保末三牟女毛也由與良利流礼呂和乎尓'
+const DANMAKU_CHARS = '阿伊宇将於加幾久介己散之須世曾多千川天止奈仁怒祢乃八比不部保末三牟女猫也由與良利流礼呂和乎尓'
 
 export function randomDanmaku(len = 4) {
   const randomChars = Array.from({ length: len }, () => DANMAKU_CHARS[Math.floor(Math.random() * DANMAKU_CHARS.length)])
