@@ -86,6 +86,9 @@ callback arguments:
 
 - live.on('DANMU_MSG', (data) => console.log(data));
 + live.addEventListener('DANMU_MSG', ({ data }) => console.log(data));
+
+- live.once('live', () => console.log('entered'));
++ live.addEventListener('live', () => console.log('entered'), { once: true });
 ```
 
 ### Catch-all event
