@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 
 import type { LaplaceRawEvent } from '../src/events.ts'
 import type { Live } from '../src/live.ts'
@@ -28,6 +28,13 @@ type KeepLiveWSConstructor = new (
  * with the corresponding LiveWS and KeepLiveWS classes.
  */
 export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiveWS: KeepLiveWSConstructor) {
+  let authV3: Awaited<ReturnType<typeof acquireAuthBody>>
+  let authV2: Awaited<ReturnType<typeof acquireAuthBody>>
+
+  beforeAll(async () => {
+    ;[authV3, authV2] = await Promise.all([acquireAuthBody(TEST_ROOM), acquireAuthBody(TEST_ROOM, 2)])
+  })
+
   describe(`${label} LiveWS`, () => {
     const connections: Live[] = []
 
@@ -39,10 +46,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
       }
     })
 
-    test('should connect with authBody and fire live event', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody })
+    test('should connect, receive heartbeat, msg, and getOnline', async () => {
+      const live = new LiveWS(TEST_ROOM, { address: authV3.address, authBody: authV3.authBody })
       connections.push(live)
 
       await new Promise<void>((resolve, reject) => {
@@ -55,15 +60,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       expect(live.live).toBe(true)
       expect(live.roomid).toBe(TEST_ROOM)
-    })
 
-    test('should receive heartbeat with online count', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody })
-      connections.push(live)
-
-      const online = await new Promise<number>((resolve, reject) => {
+      const heartbeat = await new Promise<number>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
         live.addEventListener('heartbeat', e => {
           clearTimeout(timer)
@@ -71,15 +69,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
         })
       })
 
-      expect(typeof online).toBe('number')
-      expect(online).toBeGreaterThanOrEqual(0)
-    })
-
-    test('should receive at least one msg event', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody })
-      connections.push(live)
+      expect(typeof heartbeat).toBe('number')
+      expect(heartbeat).toBeGreaterThanOrEqual(0)
 
       const msg = await new Promise<unknown>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for msg')), 4000)
@@ -90,12 +81,14 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
       })
 
       expect(msg).toBeDefined()
+
+      const online = await live.getOnline()
+      expect(typeof online).toBe('number')
+      expect(online).toBeGreaterThanOrEqual(0)
     })
 
     test('close sets closed flag and fires close event', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody })
+      const live = new LiveWS(TEST_ROOM, { address: authV3.address, authBody: authV3.authBody })
 
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
@@ -109,29 +102,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
       expect(live.closed).toBe(true)
     })
 
-    test('getOnline() returns a number', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody })
-      connections.push(live)
-
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
-        live.addEventListener('live', () => {
-          clearTimeout(timer)
-          resolve()
-        })
-      })
-
-      const online = await live.getOnline()
-      expect(typeof online).toBe('number')
-      expect(online).toBeGreaterThanOrEqual(0)
-    })
-
-    test('should connect with protover 2 and fire live event', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
+    test('should connect, receive heartbeat, and msg with protover 2', async () => {
+      const live = new LiveWS(TEST_ROOM, { address: authV2.address, authBody: authV2.authBody, protover: 2 })
       connections.push(live)
 
       await new Promise<void>((resolve, reject) => {
@@ -144,15 +116,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       expect(live.live).toBe(true)
       expect(live.roomid).toBe(TEST_ROOM)
-    })
 
-    test('should receive heartbeat with protover 2', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
-      connections.push(live)
-
-      const online = await new Promise<number>((resolve, reject) => {
+      const heartbeat = await new Promise<number>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
         live.addEventListener('heartbeat', e => {
           clearTimeout(timer)
@@ -160,15 +125,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
         })
       })
 
-      expect(typeof online).toBe('number')
-      expect(online).toBeGreaterThanOrEqual(0)
-    })
-
-    test('should receive at least one msg event with protover 2', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
-      connections.push(live)
+      expect(typeof heartbeat).toBe('number')
+      expect(heartbeat).toBeGreaterThanOrEqual(0)
 
       const msg = await new Promise<unknown>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for msg')), 4000)
@@ -182,9 +140,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
     })
 
     test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody })
+      const live = new LiveWS(TEST_ROOM, { address: authV3.address, authBody: authV3.authBody })
       connections.push(live)
 
       await new Promise<void>((resolve, reject) => {
@@ -213,9 +169,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
     })
 
     test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS with protover 2', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
-      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
+      const live = new LiveWS(TEST_ROOM, { address: authV2.address, authBody: authV2.authBody, protover: 2 })
       connections.push(live)
 
       await new Promise<void>((resolve, reject) => {
@@ -255,9 +209,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
   describe(`${label} KeepLiveWS`, () => {
     test('should connect and expose online/roomid', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const keep = new KeepLiveWS(TEST_ROOM, { address, authBody })
+      const keep = new KeepLiveWS(TEST_ROOM, { address: authV3.address, authBody: authV3.authBody })
 
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -278,9 +230,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
     })
 
     test('should reconnect after the inner connection is closed', async () => {
-      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-      const keep = new KeepLiveWS(TEST_ROOM, { address, authBody })
+      const keep = new KeepLiveWS(TEST_ROOM, { address: authV3.address, authBody: authV3.authBody })
 
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {

@@ -39,17 +39,27 @@ let browser: Browser
 let page: Page
 let server: ReturnType<typeof Bun.serve>
 
+let authV3: Awaited<ReturnType<typeof acquireAuthBody>>
+let authV2: Awaited<ReturnType<typeof acquireAuthBody>>
+
 beforeAll(async () => {
-  const buildResult = await Bun.build({
-    entrypoints: ['src/browser.ts'],
-    target: 'browser',
-    format: 'esm',
-    outdir: 'test/.browser-e2e-dist',
-  })
+  const [buildResult, a3, a2] = await Promise.all([
+    Bun.build({
+      entrypoints: ['src/browser.ts'],
+      target: 'browser',
+      format: 'esm',
+      outdir: 'test/.browser-e2e-dist',
+    }),
+    acquireAuthBody(TEST_ROOM),
+    acquireAuthBody(TEST_ROOM, 2),
+  ])
 
   if (!buildResult.success) {
     throw new Error(`Bun.build failed: ${buildResult.logs.join('\n')}`)
   }
+
+  authV3 = a3
+  authV2 = a2
 
   const html = await Bun.file('test/browser-e2e.html').text()
   const bundleJs = await Bun.file('test/.browser-e2e-dist/browser.js').text()
@@ -81,12 +91,10 @@ afterAll(async () => {
   server?.stop()
 })
 
-// -- LiveWS (protover 3, brotli) ----------------------------------------------
+// -- LiveWS (protover 3, brotli) — shared connection --------------------------
 
 describe('browser LiveWS', () => {
-  test('should connect with authBody and fire live event', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
+  test('should connect, receive heartbeat, msg, and getOnline', async () => {
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
         const live = new window.LiveWS(roomid, { address, authBody })
@@ -99,26 +107,8 @@ describe('browser LiveWS', () => {
               resolve()
             })
           })
-          return { live: live.live, roomid: live.roomid }
-        } finally {
-          live.close()
-        }
-      },
-      { address, authBody, roomid: TEST_ROOM }
-    )
 
-    expect(result.live).toBe(true)
-    expect(result.roomid).toBe(TEST_ROOM)
-  })
-
-  test('should receive heartbeat with online count', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-    const online = await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        const live = new window.LiveWS(roomid, { address, authBody })
-        try {
-          return await new Promise<number>((resolve, reject) => {
+          const heartbeat = await new Promise<number>((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
             live.addEventListener('heartbeat', e => {
               console.log('heartbeat received, online:', e.data)
@@ -126,25 +116,8 @@ describe('browser LiveWS', () => {
               resolve(e.data)
             })
           })
-        } finally {
-          live.close()
-        }
-      },
-      { address, authBody, roomid: TEST_ROOM }
-    )
 
-    expect(typeof online).toBe('number')
-    expect(online).toBeGreaterThanOrEqual(0)
-  })
-
-  test('should receive at least one msg event', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-    const msg = await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        const live = new window.LiveWS(roomid, { address, authBody })
-        try {
-          return await new Promise<unknown>((resolve, reject) => {
+          const msg = await new Promise<{ cmd?: string }>((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error('Timeout waiting for msg')), 4000)
             live.addEventListener('msg', e => {
               console.log('msg received, cmd:', e.data?.cmd)
@@ -152,19 +125,34 @@ describe('browser LiveWS', () => {
               resolve(e.data)
             })
           })
+
+          const online = await live.getOnline()
+          console.log('getOnline() returned:', online)
+
+          return {
+            liveFlag: live.live,
+            roomid: live.roomid,
+            heartbeat,
+            msgCmd: msg.cmd,
+            online,
+          }
         } finally {
           live.close()
         }
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
     )
 
-    expect(msg).toBeDefined()
+    expect(result.liveFlag).toBe(true)
+    expect(result.roomid).toBe(TEST_ROOM)
+    expect(typeof result.heartbeat).toBe('number')
+    expect(result.heartbeat).toBeGreaterThanOrEqual(0)
+    expect(result.msgCmd).toBeDefined()
+    expect(typeof result.online).toBe('number')
+    expect(result.online).toBeGreaterThanOrEqual(0)
   })
 
   test('close sets closed flag and fires close event', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
     const closed = await page.evaluate(
       async ({ address, authBody, roomid }) => {
         const live = new window.LiveWS(roomid, { address, authBody })
@@ -179,38 +167,10 @@ describe('browser LiveWS', () => {
         })
         return live.closed
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
     )
 
     expect(closed).toBe(true)
-  })
-
-  test('getOnline() returns a number', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
-    const online = await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        const live = new window.LiveWS(roomid, { address, authBody })
-        try {
-          await new Promise<void>((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
-            live.addEventListener('live', () => {
-              clearTimeout(timer)
-              resolve()
-            })
-          })
-          const online = await live.getOnline()
-          console.log('getOnline() returned:', online)
-          return online
-        } finally {
-          live.close()
-        }
-      },
-      { address, authBody, roomid: TEST_ROOM }
-    )
-
-    expect(typeof online).toBe('number')
-    expect(online).toBeGreaterThanOrEqual(0)
   })
 
   test('throws for NaN roomid', async () => {
@@ -243,12 +203,10 @@ describe('browser LiveWS', () => {
   })
 })
 
-// -- LiveWS (protover 2, zlib) ------------------------------------------------
+// -- LiveWS (protover 2, zlib) — shared connection ----------------------------
 
 describe('browser LiveWS protover 2', () => {
-  test('should connect with protover 2 and fire live event', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
+  test('should connect, receive heartbeat, and msg with protover 2', async () => {
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
         const live = new window.LiveWS(roomid, { address, authBody, protover: 2 })
@@ -261,26 +219,8 @@ describe('browser LiveWS protover 2', () => {
               resolve()
             })
           })
-          return { live: live.live, roomid: live.roomid }
-        } finally {
-          live.close()
-        }
-      },
-      { address, authBody, roomid: TEST_ROOM }
-    )
 
-    expect(result.live).toBe(true)
-    expect(result.roomid).toBe(TEST_ROOM)
-  })
-
-  test('should receive heartbeat with protover 2', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
-    const online = await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        const live = new window.LiveWS(roomid, { address, authBody, protover: 2 })
-        try {
-          return await new Promise<number>((resolve, reject) => {
+          const heartbeat = await new Promise<number>((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
             live.addEventListener('heartbeat', e => {
               console.log('protover 2: heartbeat received, online:', e.data)
@@ -288,25 +228,8 @@ describe('browser LiveWS protover 2', () => {
               resolve(e.data)
             })
           })
-        } finally {
-          live.close()
-        }
-      },
-      { address, authBody, roomid: TEST_ROOM }
-    )
 
-    expect(typeof online).toBe('number')
-    expect(online).toBeGreaterThanOrEqual(0)
-  })
-
-  test('should receive at least one msg event with protover 2', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
-
-    const msg = await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        const live = new window.LiveWS(roomid, { address, authBody, protover: 2 })
-        try {
-          return await new Promise<unknown>((resolve, reject) => {
+          const msg = await new Promise<{ cmd?: string }>((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error('Timeout waiting for msg')), 4000)
             live.addEventListener('msg', e => {
               console.log('protover 2: msg received, cmd:', e.data?.cmd)
@@ -314,14 +237,25 @@ describe('browser LiveWS protover 2', () => {
               resolve(e.data)
             })
           })
+
+          return {
+            liveFlag: live.live,
+            roomid: live.roomid,
+            heartbeat,
+            msgCmd: msg.cmd,
+          }
         } finally {
           live.close()
         }
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV2.address, authBody: authV2.authBody, roomid: TEST_ROOM }
     )
 
-    expect(msg).toBeDefined()
+    expect(result.liveFlag).toBe(true)
+    expect(result.roomid).toBe(TEST_ROOM)
+    expect(typeof result.heartbeat).toBe('number')
+    expect(result.heartbeat).toBeGreaterThanOrEqual(0)
+    expect(result.msgCmd).toBeDefined()
   })
 })
 
@@ -329,7 +263,6 @@ describe('browser LiveWS protover 2', () => {
 
 describe('browser LiveWS send danmaku', () => {
   test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
     const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
 
     await page.evaluate(
@@ -350,7 +283,7 @@ describe('browser LiveWS send danmaku', () => {
           })
         })
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
     )
 
     await sendDanmaku(TEST_ROOM, content)
@@ -390,7 +323,6 @@ describe('browser LiveWS send danmaku', () => {
   })
 
   test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS with protover 2', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
     const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
 
     await page.evaluate(
@@ -411,7 +343,7 @@ describe('browser LiveWS send danmaku', () => {
           })
         })
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV2.address, authBody: authV2.authBody, roomid: TEST_ROOM }
     )
 
     await sendDanmaku(TEST_ROOM, content)
@@ -455,8 +387,6 @@ describe('browser LiveWS send danmaku', () => {
 
 describe('browser KeepLiveWS', () => {
   test('should connect and expose online/roomid', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
         const keep = new window.KeepLiveWS(roomid, { address, authBody })
@@ -476,7 +406,7 @@ describe('browser KeepLiveWS', () => {
         keep.close()
         return { ...out, closed: keep.closed }
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
     )
 
     expect(result.roomid).toBe(TEST_ROOM)
@@ -485,8 +415,6 @@ describe('browser KeepLiveWS', () => {
   })
 
   test('should reconnect after the inner connection is closed', async () => {
-    const { address, authBody } = await acquireAuthBody(TEST_ROOM)
-
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
         const keep = new window.KeepLiveWS(roomid, { address, authBody })
@@ -524,7 +452,7 @@ describe('browser KeepLiveWS', () => {
         keep.close()
         return out
       },
-      { address, authBody, roomid: TEST_ROOM }
+      { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
     )
 
     expect(result.reconnected).toBe(true)
