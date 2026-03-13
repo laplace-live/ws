@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.5-beta.0
+
+### Patch Changes
+
+- pako loads on demand
+
 ## 7.1.4
 
 ### Patch Changes

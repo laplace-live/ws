@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@laplace.live/ws": "7.1.4"
+  },
+  "changesets": [
+    "full-terms-teach"
+  ]
+}
