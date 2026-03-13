@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.5-beta.2
+
+### Patch Changes
+
+- 27b1c6e: add e2e test
+
 ## 7.1.5-beta.1
 
 ### Patch Changes
