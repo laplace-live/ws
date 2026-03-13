@@ -4,7 +4,7 @@ import type { LaplaceRawEvent } from '../src/events.ts'
 import type { Live } from '../src/live.ts'
 import type { WSOptions } from '../src/ws.ts'
 
-import { acquireAuthBody, TEST_ROOM } from './utils.ts'
+import { acquireAuthBody, sendDanmaku, TEST_LOGIN_SYNC_TOKEN, TEST_ROOM } from './utils.ts'
 
 type LiveWSConstructor = new (roomid: number, opts?: WSOptions) => Live
 type KeepLiveWSConstructor = new (
@@ -179,6 +179,68 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
       })
 
       expect(msg).toBeDefined()
+    })
+
+    test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS', async () => {
+      const { address, authBody } = await acquireAuthBody(TEST_ROOM)
+
+      const live = new LiveWS(TEST_ROOM, { address, authBody })
+      connections.push(live)
+
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
+        live.addEventListener('live', () => {
+          clearTimeout(timer)
+          resolve()
+        })
+      })
+
+      const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
+      await sendDanmaku(TEST_ROOM, content)
+
+      const received = await new Promise<string>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for sent danmaku')), 10000)
+        live.addEventListener('msg', (e: LaplaceRawEvent<{ cmd?: string; info?: unknown[] }>) => {
+          const data = e.data
+          if (data.cmd === 'DANMU_MSG' && data.info?.[1] === content) {
+            clearTimeout(timer)
+            resolve(data.info[1])
+          }
+        })
+      })
+
+      expect(received).toBe(content)
+    })
+
+    test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS with protover 2', async () => {
+      const { address, authBody } = await acquireAuthBody(TEST_ROOM, 2)
+
+      const live = new LiveWS(TEST_ROOM, { address, authBody, protover: 2 })
+      connections.push(live)
+
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
+        live.addEventListener('live', () => {
+          clearTimeout(timer)
+          resolve()
+        })
+      })
+
+      const content = `哈哈${Math.random().toString(36).slice(2, 6)}`
+      await sendDanmaku(TEST_ROOM, content)
+
+      const received = await new Promise<string>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Timeout waiting for sent danmaku')), 10000)
+        live.addEventListener('msg', (e: LaplaceRawEvent<{ cmd?: string; info?: unknown[] }>) => {
+          const data = e.data
+          if (data.cmd === 'DANMU_MSG' && data.info?.[1] === content) {
+            clearTimeout(timer)
+            resolve(data.info[1])
+          }
+        })
+      })
+
+      expect(received).toBe(content)
     })
 
     test('throws for NaN roomid', () => {

@@ -1,13 +1,14 @@
 import type { BilibiliInternal } from '@laplace.live/internal'
 
-export const TEST_ROOM = 5050
+export const TEST_ROOM = 456117
+export const TEST_LOGIN_SYNC_TOKEN = process.env.TEST_LOGIN_SYNC_TOKEN
 
 /**
  * Acquire a valid authBody from the Laplace proxy, following the same
  * pattern as references/createRoomConnection.ts.
  */
 export async function acquireAuthBody(roomid: number, protover: 2 | 3 = 3) {
-  const url = `https://workers.laplace.cn/bilibili/room-conn-info-v2/${roomid}`
+  const url = `${process.env.TEST_AUTH_BODY_URL}/${roomid}`
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -37,4 +38,28 @@ export async function acquireAuthBody(roomid: number, protover: 2 | 3 = 3) {
       key: json.data.token || '',
     },
   }
+}
+
+/**
+ * Send a danmaku message to a live room via the Laplace proxy.
+ * Requires `TEST_LOGIN_SYNC_TOKEN` to be set in the environment.
+ */
+export async function sendDanmaku(roomId: number, content: string) {
+  if (!TEST_LOGIN_SYNC_TOKEN) {
+    throw new Error('TEST_LOGIN_SYNC_TOKEN is not set')
+  }
+
+  const resp = await fetch(`${process.env.TEST_LIVE_SEND_URL}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId, content, loginSyncToken: TEST_LOGIN_SYNC_TOKEN }),
+  })
+
+  const json: BilibiliInternal.HTTPS.Prod.DanmakuSend = await resp.json()
+
+  if (json.code !== 0) {
+    throw new Error(`sendDanmaku failed: ${json.message} (code: ${json.code})`)
+  }
+
+  return json
 }
