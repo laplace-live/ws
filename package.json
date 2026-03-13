@@ -35,7 +35,9 @@
     "build": "tsup",
     "check": "tsc --noEmit",
     "test": "bun test --timeout 5000",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "release": "changeset publish",
+    "version": "changeset version"
   },
   "repository": {
     "type": "git",
