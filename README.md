@@ -2,12 +2,11 @@
 
 LAPLACE Live! flavored bilibili live WebSocket/TCP API.
 
-This project is based on [bilibili-live-ws](https://github.com/simon300000/bilibili-live-ws) and has the exact same API as the original project, with the following differences:
+A modern, web-standard rewrite of [bilibili-live-ws](https://github.com/simon300000/bilibili-live-ws). It provides the same core classes (`LiveWS`, `LiveTCP`, `KeepLiveWS`, `KeepLiveTCP`) but uses a different event API and drops all Node.js polyfills:
 
 - Pure ESM
-- Uses web-standard `EventTarget`/`Event` instead of Node.js `EventEmitter` polyfills
-- Uses native `WebSocket` API directly, removing `isomorphic-ws` and `ws` dependencies
-- No `Buffer` polyfills
+- Web-standard `EventTarget`/`Event` instead of Node.js `EventEmitter` — use `addEventListener` / `removeEventListener` instead of `.on()` / `.once()`
+- Native `WebSocket` API directly — no `isomorphic-ws` or `ws` dependencies
 - Typed `addEventListener` via `LiveEventMap` with `@laplace.live/internal` types
 - Conditional `exports` field with `./server`, `./client`, `./browser` sub-path exports
 
@@ -71,6 +70,42 @@ import { LiveTCP } from "@laplace.live/ws/server";
 
 const live = new LiveTCP(25034104, { key: "..." });
 live.addEventListener("heartbeat", ({ data }) => console.log("Online:", data));
+```
+
+## Migrating from bilibili-live-ws
+
+### Event listeners
+
+Replace `.on()` / `.once()` with `addEventListener()` / `removeEventListener()`.
+Event data is accessed via the event object's `.data` property instead of direct
+callback arguments:
+
+```diff
+- live.on('heartbeat', (online) => console.log(online));
++ live.addEventListener('heartbeat', ({ data: online }) => console.log(online));
+
+- live.on('DANMU_MSG', (data) => console.log(data));
++ live.addEventListener('DANMU_MSG', ({ data }) => console.log(data));
+```
+
+### Catch-all event
+
+The `relayEvent` symbol is replaced by an `event` meta-event:
+
+```diff
+- const { relayEvent } = require('bilibili-live-ws');
+- live.on(relayEvent, (name, data) => ...);
++ live.addEventListener('event', ({ data }) => ...);
+```
+
+### Buffer → Uint8Array
+
+Raw data uses `Uint8Array` instead of `Buffer`. If you pass a custom
+`authBody` as binary, use `Uint8Array`:
+
+```diff
+- live = new LiveWS(roomid, { authBody: Buffer.from(...) });
++ live = new LiveWS(roomid, { authBody: new Uint8Array(...) });
 ```
 
 ## License
