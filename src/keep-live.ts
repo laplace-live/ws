@@ -1,6 +1,6 @@
 import type { Live } from './live.ts'
 
-import { LaplaceRawEvent } from './events.ts'
+import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
 
 /**
  * Auto-reconnecting wrapper around a {@link Live} subclass.
@@ -16,8 +16,8 @@ import { LaplaceRawEvent } from './events.ts'
  * @example
  * ```ts
  * const keep = new KeepLiveWS(12345, { key: '...' })
- * keep.on('heartbeat', (e) => console.log('online:', e.data))
- * keep.on('DANMU_MSG', (e) => console.log('danmaku:', e.data))
+ * keep.addEventListener('heartbeat', (e) => console.log('online:', e.data))
+ * keep.addEventListener('DANMU_MSG', ({ data }) => console.log('danmaku:', data.msg_id))
  * ```
  */
 export class KeepLive<Base extends typeof Live> extends EventTarget {
@@ -75,7 +75,7 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
     }, this.timeout)
 
     connection.addEventListener('event', e => {
-      const evt = (e as LaplaceRawEvent<Event>).data
+      const evt = e.data
       if (evt.type !== 'error') {
         if (evt instanceof LaplaceRawEvent) {
           this.dispatchEvent(new LaplaceRawEvent(evt.type, evt.data))
@@ -143,35 +143,27 @@ export class KeepLive<Base extends typeof Live> extends EventTarget {
     return this.connection.send(data)
   }
 
-  /**
-   * Subscribe to an event type with a typed {@link LaplaceRawEvent} listener.
-   *
-   * @typeParam T - Expected data type carried by the event.
-   * @param type     - Event name (e.g. `"heartbeat"`, `"msg"`, `"DANMU_MSG"`).
-   * @param listener - Callback receiving a {@link LaplaceRawEvent LaplaceRawEvent\<T\>}.
-   * @param options  - Standard `addEventListener` options.
-   */
-  on<T = unknown>(
-    type: string,
-    listener: (event: LaplaceRawEvent<T>) => void,
-    options?: boolean | AddEventListenerOptions
-  ): void {
-    this.addEventListener(type, listener as EventListener, options)
+  /** {@inheritDoc Live.addEventListener} */
+  declare addEventListener: {
+    <K extends keyof LiveEventMap>(
+      type: K,
+      listener: (ev: LiveEventMap[K]) => void,
+      options?: boolean | AddEventListenerOptions
+    ): void
+    <T = unknown>(
+      type: string,
+      listener: (ev: LaplaceRawEvent<T>) => void,
+      options?: boolean | AddEventListenerOptions
+    ): void
   }
 
-  /**
-   * Unsubscribe a previously registered listener.
-   *
-   * @typeParam T - Data type matching the original subscription.
-   * @param type     - Event name.
-   * @param listener - The same function reference passed to {@link on}.
-   * @param options  - Standard `removeEventListener` options.
-   */
-  off<T = unknown>(
-    type: string,
-    listener: (event: LaplaceRawEvent<T>) => void,
-    options?: boolean | EventListenerOptions
-  ): void {
-    this.removeEventListener(type, listener as EventListener, options)
+  /** {@inheritDoc Live.removeEventListener} */
+  declare removeEventListener: {
+    <K extends keyof LiveEventMap>(
+      type: K,
+      listener: (ev: LiveEventMap[K]) => void,
+      options?: boolean | EventListenerOptions
+    ): void
+    (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
   }
 }

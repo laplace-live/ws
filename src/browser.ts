@@ -2,6 +2,7 @@ import { inflates } from './inflate/browser.ts'
 import { KeepLive } from './keep-live.ts'
 import { LiveWSBase, type WSOptions } from './ws.ts'
 
+export type { LiveEventMap } from './events.ts'
 export type { LiveOptions } from './live.ts'
 export type { WSOptions } from './ws.ts'
 

@@ -1,5 +1,5 @@
 import { encoder, type Inflates, makeDecoder } from './buffer.ts'
-import { LaplaceRawEvent } from './events.ts'
+import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
 
 /**
  * Options for configuring the Bilibili live connection authentication.
@@ -98,8 +98,8 @@ export class Live extends EventTarget {
 
     const decode = makeDecoder(inflates)
 
-    this.addEventListener('message', async e => {
-      const buffer = (e as LaplaceRawEvent<Uint8Array>).data
+    this.addEventListener<Uint8Array>('message', async e => {
+      const buffer = e.data
       const packs = await decode(buffer)
       packs.forEach(({ type, data }) => {
         if (type === 'welcome') {
@@ -183,42 +183,50 @@ export class Live extends EventTarget {
    */
   getOnline() {
     this.heartbeat()
-    return new Promise<number>(resolve =>
-      this.addEventListener('heartbeat', e => resolve((e as LaplaceRawEvent<number>).data), { once: true })
-    )
+    return new Promise<number>(resolve => this.addEventListener('heartbeat', e => resolve(e.data), { once: true }))
   }
 
   /**
-   * Subscribe to an event type with a typed {@link LaplaceRawEvent} listener.
-   * Convenience wrapper around {@link EventTarget.addEventListener}.
+   * Typed `addEventListener` that narrows the inherited {@link EventTarget}
+   * signature using {@link LiveEventMap}.
    *
-   * @typeParam T - Expected data type carried by the event.
-   * @param type     - Event name (e.g. `"heartbeat"`, `"msg"`, `"DANMU_MSG"`).
-   * @param listener - Callback receiving a {@link LaplaceRawEvent LaplaceRawEvent\<T\>}.
-   * @param options  - Standard `addEventListener` options.
+   * - Known events (e.g. `"heartbeat"`, `"DANMU_MSG"`) are auto-typed.
+   * - Unknown/dynamic events accept a generic `<T>` for the payload type.
+   *
+   * Uses `declare` to shadow the inherited type without emitting code —
+   * at runtime this is still `EventTarget.prototype.addEventListener`.
+   *
+   * @example
+   * ```ts
+   * live.addEventListener('heartbeat', (e) => console.log(e.data))
+   * live.addEventListener('DANMU_MSG', ({ data }) => console.log(data.msg_id))
+   * live.addEventListener<CustomType>('NEW_CMD', ({ data }) => console.log(data))
+   * ```
    */
-  on<T = unknown>(
-    type: string,
-    listener: (event: LaplaceRawEvent<T>) => void,
-    options?: boolean | AddEventListenerOptions
-  ): void {
-    this.addEventListener(type, listener as EventListener, options)
+  declare addEventListener: {
+    <K extends keyof LiveEventMap>(
+      type: K,
+      listener: (ev: LiveEventMap[K]) => void,
+      options?: boolean | AddEventListenerOptions
+    ): void
+    <T = unknown>(
+      type: string,
+      listener: (ev: LaplaceRawEvent<T>) => void,
+      options?: boolean | AddEventListenerOptions
+    ): void
   }
 
   /**
-   * Unsubscribe a previously registered listener.
-   * Convenience wrapper around {@link EventTarget.removeEventListener}.
+   * Typed `removeEventListener` matching {@link addEventListener}.
    *
-   * @typeParam T - Data type matching the original subscription.
-   * @param type     - Event name.
-   * @param listener - The same function reference passed to {@link on}.
-   * @param options  - Standard `removeEventListener` options.
+   * Uses `declare` to shadow the inherited type without emitting code.
    */
-  off<T = unknown>(
-    type: string,
-    listener: (event: LaplaceRawEvent<T>) => void,
-    options?: boolean | EventListenerOptions
-  ): void {
-    this.removeEventListener(type, listener as EventListener, options)
+  declare removeEventListener: {
+    <K extends keyof LiveEventMap>(
+      type: K,
+      listener: (ev: LiveEventMap[K]) => void,
+      options?: boolean | EventListenerOptions
+    ): void
+    (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
   }
 }

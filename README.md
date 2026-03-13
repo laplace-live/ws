@@ -8,7 +8,7 @@ This project is based on [bilibili-live-ws](https://github.com/simon300000/bilib
 - Uses web-standard `EventTarget`/`Event` instead of Node.js `EventEmitter` polyfills
 - Uses native `WebSocket` API directly, removing `isomorphic-ws` and `ws` dependencies
 - No `Buffer` polyfills
-- Typed `on<T>()`/`off<T>()` convenience methods (also supports raw `addEventListener` since all classes extend `EventTarget`)
+- Typed `addEventListener` via `LiveEventMap` with [`@laplace.live/internal`](https://github.com/laplace-live/internal) types
 - Conditional `exports` field with `./server`, `./client`, `./browser` sub-path exports
 
 ## Install
@@ -19,42 +19,58 @@ bun add @laplace.live/ws
 
 ## Usage
 
+Known Bilibili events are auto-typed via `LiveEventMap` — no manual generics
+or casting needed:
+
 ```typescript
-import type { BilibiliInternal } from "@laplace.live/internal";
-import { LiveWS, KeepLiveWS } from "@laplace.live/ws";
+import { LiveWS } from "@laplace.live/ws";
 
 const live = new LiveWS(25034104, { key: "...", address: "wss://..." });
 
-live.on("open", () => console.log("Connection established"));
-live.on("live", () => console.log("Room entered"));
-live.on<number>("heartbeat", ({ data }) => console.log("Online:", data));
-live.on<{ cmd: string }>("msg", ({ data }) =>
-  console.log("Command:", data.cmd),
+// Built-in events are typed automatically
+live.addEventListener("open", () => console.log("Connection established"));
+live.addEventListener("live", () => console.log("Room entered"));
+live.addEventListener("heartbeat", ({ data }) => console.log("Online:", data));
+
+// Known Bilibili commands are typed from @laplace.live/internal
+live.addEventListener("DANMU_MSG", ({ data }) => console.log(data.msg_id));
+live.addEventListener("SEND_GIFT", ({ data }) => console.log(data.giftName));
+live.addEventListener("SUPER_CHAT_MESSAGE", ({ data }) =>
+  console.log(data.message),
 );
-live.on<BilibiliInternal.WebSocket.Prod.DANMU_MSG>("DANMU_MSG", ({ data }) =>
-  console.log("DANMU_MSG msg_id", data.msg_id),
+
+// Dynamic/unknown events use a generic fallback
+live.addEventListener<{ custom: string }>("NEW_CMD", ({ data }) =>
+  console.log(data.custom),
 );
 ```
 
 ### Browser
 
 ```typescript
-import type { BilibiliInternal } from "@laplace.live/internal";
-import { KeepLiveWS } from "@laplace.live/ws/browser";
+import { LiveWS, KeepLiveWS } from "@laplace.live/ws/browser";
 
-const live = new KeepLiveWS(25034104, { key: "...", address: "wss://..." });
-live.on<BilibiliInternal.WebSocket.Prod.DANMU_MSG>("DANMU_MSG", ({ data }) =>
-  console.log("DANMU_MSG msg_id", data.msg_id),
-);
+const live = new LiveWS(25034104, { key: "...", address: "wss://..." });
+live.addEventListener("DANMU_MSG", ({ data }) => console.log(data.msg_id));
+```
+
+### Auto-reconnecting
+
+```typescript
+import { KeepLiveWS } from "@laplace.live/ws";
+
+const keep = new KeepLiveWS(25034104, { key: "...", address: "wss://..." });
+keep.addEventListener("heartbeat", ({ data }) => console.log("Online:", data));
+keep.addEventListener("DANMU_MSG", ({ data }) => console.log(data.msg_id));
 ```
 
 ### TCP (Node.js / Bun only)
 
 ```typescript
-import { LiveTCP, KeepLiveTCP } from "@laplace.live/ws";
+import { LiveTCP } from "@laplace.live/ws";
 
 const live = new LiveTCP(25034104, { key: "..." });
-live.on<number>("heartbeat", ({ data }) => console.log("Online:", data));
+live.addEventListener("heartbeat", ({ data }) => console.log("Online:", data));
 ```
 
 ## License

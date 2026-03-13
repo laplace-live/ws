@@ -94,7 +94,7 @@ export const makeDecoder = ({ inflateAsync, brotliDecompressAsync }: Inflates) =
 
     return packs.flatMap(pack => {
       if (pack.protocol === 2 || pack.protocol === 3) {
-        return pack.data as typeof packs
+        return pack.data
       }
       return pack
     })

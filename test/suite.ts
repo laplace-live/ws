@@ -15,7 +15,7 @@ type KeepLiveWSConstructor = new (
   online: number
   closed: boolean
   close(): void
-  on<T = unknown>(
+  addEventListener<T = unknown>(
     type: string,
     listener: (event: LaplaceRawEvent<T>) => void,
     options?: boolean | AddEventListenerOptions
@@ -46,7 +46,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
-        live.on('live', () => {
+        live.addEventListener('live', () => {
           clearTimeout(timer)
           resolve()
         })
@@ -64,7 +64,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       const online = await new Promise<number>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for heartbeat')), 4000)
-        live.on<number>('heartbeat', e => {
+        live.addEventListener('heartbeat', e => {
           clearTimeout(timer)
           resolve(e.data)
         })
@@ -82,7 +82,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       const msg = await new Promise<unknown>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout waiting for msg')), 4000)
-        live.on('msg', e => {
+        live.addEventListener('msg', e => {
           clearTimeout(timer)
           resolve(e.data)
         })
@@ -98,8 +98,8 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
-        live.on('live', () => live.close())
-        live.on('close', () => {
+        live.addEventListener('live', () => live.close())
+        live.addEventListener('close', () => {
           clearTimeout(timer)
           resolve()
         })
@@ -116,7 +116,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
 
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout')), 4000)
-        live.on('live', () => {
+        live.addEventListener('live', () => {
           clearTimeout(timer)
           resolve()
         })
@@ -148,7 +148,7 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
           keep.close()
           reject(new Error('Timeout'))
         }, 4000)
-        keep.on<number>('heartbeat', () => {
+        keep.addEventListener('heartbeat', () => {
           clearTimeout(timer)
           resolve()
         })

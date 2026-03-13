@@ -7,16 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": [
-      "**",
-      "!node_modules",
-      "!dist",
-      "!build",
-      "!output",
-      "!out",
-      "!references",
-      "!migrations"
-    ]
+    "includes": ["**", "!node_modules", "!dist", "!build", "!output", "!out", "!references", "!migrations"]
   },
   "formatter": {
     "enabled": true,

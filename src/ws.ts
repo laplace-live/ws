@@ -48,9 +48,7 @@ export class LiveWSBase extends Live {
 
     ws.binaryType = 'arraybuffer'
     ws.addEventListener('open', e => this.dispatchEvent(new Event(e.type)))
-    ws.addEventListener('message', e =>
-      this.dispatchEvent(new LaplaceRawEvent('message', new Uint8Array(e.data as ArrayBuffer)))
-    )
+    ws.addEventListener('message', e => this.dispatchEvent(new LaplaceRawEvent('message', new Uint8Array(e.data))))
     ws.addEventListener('close', e => this.dispatchEvent(new Event(e.type)))
     ws.addEventListener('error', () => this.dispatchEvent(new Event('_error')))
 

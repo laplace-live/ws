@@ -3,6 +3,7 @@ import { KeepLive } from './keep-live.ts'
 import { LiveTCPBase, type TCPOptions } from './tcp.ts'
 import { LiveWSBase, type WSOptions } from './ws.ts'
 
+export type { LiveEventMap } from './events.ts'
 export type { LiveOptions } from './live.ts'
 export type { TCPOptions } from './tcp.ts'
 export type { WSOptions } from './ws.ts'

@@ -1,22 +1,4 @@
-type GET_DANMU_INFO = {
-  code: number
-  message: string
-  ttl: number
-  data: {
-    business_id: number
-    group: string
-    host_list: {
-      host: string
-      port: number
-      wss_port: number
-      ws_port: number
-    }[]
-    max_delay: number
-    refresh_rate: number
-    refresh_row_factor: number
-    token: string
-  }
-}
+import type { BilibiliInternal } from '@laplace.live/internal'
 
 /**
  * Fetch WebSocket connection configuration for a Bilibili live room directly
@@ -36,20 +18,20 @@ type GET_DANMU_INFO = {
  * @throws {Error} If the API returns no data (e.g. invalid room or risk-control block).
  */
 export const getConf = async (roomid: number) => {
-  const raw = (await fetch(`https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${roomid}`).then(w =>
-    w.json()
-  )) as GET_DANMU_INFO
-  if (!raw.data) {
-    throw new Error(`getConf failed for room ${roomid}: ${raw.message || 'no data'} (code: ${raw.code})`)
+  const resp = await fetch(`https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${roomid}`)
+  const json: BilibiliInternal.HTTPS.Prod.GetDanmuInfo = await resp.json()
+
+  if (!json.data) {
+    throw new Error(`getConf failed for room ${roomid}: ${json.message || 'no data'} (code: ${json.code})`)
   }
   const {
     data: {
       token: key,
       host_list: [{ host }],
     },
-  } = raw
+  } = json
   const address = `wss://${host}/sub`
-  return { key, host, address, raw }
+  return { key, host, address, json }
 }
 
 /**
