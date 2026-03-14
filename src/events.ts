@@ -96,7 +96,7 @@ export interface LiveEventMap {
 }
 
 /**
- * Typed {@link EventTarget} base class for Laplace live connections.
+ * Typed {@link EventTarget} base class for live connections.
  *
  * Provides typed `addEventListener` / `removeEventListener` via
  * {@link LiveEventMap} and a `dispatchEvent` override that emits a
