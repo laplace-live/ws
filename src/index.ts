@@ -8,7 +8,7 @@ export type { LiveOptions } from './live.ts'
 export type { TCPOptions } from './tcp.ts'
 export type { WSOptions } from './ws.ts'
 
-export { LaplaceRawEvent } from './events.ts'
+export { LaplaceEventTarget, LaplaceRawEvent } from './events.ts'
 export { getConf, getRoomid } from './extra.ts'
 
 /**

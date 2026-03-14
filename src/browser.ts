@@ -6,7 +6,7 @@ export type { LiveEventMap } from './events.ts'
 export type { LiveOptions } from './live.ts'
 export type { WSOptions } from './ws.ts'
 
-export { LaplaceRawEvent } from './events.ts'
+export { LaplaceEventTarget, LaplaceRawEvent } from './events.ts'
 
 /**
  * WebSocket client for a Bilibili live room (browser).

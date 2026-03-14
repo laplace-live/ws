@@ -1,6 +1,6 @@
 import type { Live } from './live.ts'
 
-import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
+import { LaplaceEventTarget, LaplaceRawEvent } from './events.ts'
 
 /**
  * Auto-reconnecting wrapper around a {@link Live} subclass.
@@ -19,7 +19,7 @@ import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
  * keep.addEventListener('DANMU_MSG', ({ data }) => console.log('danmaku:', data.msg_id))
  * ```
  */
-export class KeepLive<T extends Live> extends EventTarget {
+export class KeepLive<T extends Live> extends LaplaceEventTarget {
   /** @internal Factory that creates a fresh connection with the original arguments. */
   private createConnection: () => T
   /** `true` after {@link close} has been called; prevents further reconnects. */
@@ -39,16 +39,6 @@ export class KeepLive<T extends Live> extends EventTarget {
     this.timeout = 45 * 1000
     this.connection = this.createConnection()
     this.connect(false)
-  }
-
-  /**
-   * Overridden to also dispatch a `LaplaceRawEvent<Event>` with type `"event"`
-   * for every event, enabling catch-all listeners.
-   */
-  dispatchEvent(event: Event): boolean {
-    const result = super.dispatchEvent(event)
-    super.dispatchEvent(new LaplaceRawEvent('event', event))
-    return result
   }
 
   /**
@@ -137,29 +127,5 @@ export class KeepLive<T extends Live> extends EventTarget {
    */
   send(data: Uint8Array) {
     return this.connection.send(data)
-  }
-
-  /** {@inheritDoc Live.addEventListener} */
-  declare addEventListener: {
-    <K extends keyof LiveEventMap>(
-      type: K,
-      listener: (ev: LiveEventMap[K]) => void,
-      options?: boolean | AddEventListenerOptions
-    ): void
-    <T = unknown>(
-      type: string,
-      listener: (ev: LaplaceRawEvent<T>) => void,
-      options?: boolean | AddEventListenerOptions
-    ): void
-  }
-
-  /** {@inheritDoc Live.removeEventListener} */
-  declare removeEventListener: {
-    <K extends keyof LiveEventMap>(
-      type: K,
-      listener: (ev: LiveEventMap[K]) => void,
-      options?: boolean | EventListenerOptions
-    ): void
-    (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
   }
 }
