@@ -27,7 +27,7 @@ export type LiveOptions = {
 /**
  * Base class for a single Bilibili live room connection.
  *
- * Extends {@link EventTarget} and emits the following events:
+ * Extends {@link LaplaceEventTarget} and emits the following events:
  *
  * | Event         | Payload            | Description                                      |
  * |---------------|--------------------|--------------------------------------------------|
