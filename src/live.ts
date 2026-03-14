@@ -1,5 +1,5 @@
 import { encoder, type Inflates, makeDecoder } from './buffer.ts'
-import { LaplaceRawEvent, type LiveEventMap } from './events.ts'
+import { LaplaceEventTarget, LaplaceRawEvent } from './events.ts'
 
 /**
  * Options for configuring the Bilibili live connection authentication.
@@ -27,7 +27,7 @@ export type LiveOptions = {
 /**
  * Base class for a single Bilibili live room connection.
  *
- * Extends {@link EventTarget} and emits the following events:
+ * Extends {@link LaplaceEventTarget} and emits the following events:
  *
  * | Event         | Payload            | Description                                      |
  * |---------------|--------------------|--------------------------------------------------|
@@ -49,7 +49,7 @@ export type LiveOptions = {
  *
  * @throws {Error} If `roomid` is not a finite number.
  */
-export class Live extends EventTarget {
+export class Live extends LaplaceEventTarget {
   /** The live room ID this instance is connected to. */
   roomid: number
   /** Latest known online viewer count, updated on each heartbeat. */
@@ -161,16 +161,6 @@ export class Live extends EventTarget {
     })
   }
 
-  /**
-   * Overridden to also dispatch a `LaplaceRawEvent<Event>` with type `"event"`
-   * for every event, enabling catch-all listeners.
-   */
-  dispatchEvent(event: Event): boolean {
-    const result = super.dispatchEvent(event)
-    super.dispatchEvent(new LaplaceRawEvent('event', event))
-    return result
-  }
-
   /** Send a heartbeat packet to the server. */
   heartbeat() {
     this.send(encoder('heartbeat'))
@@ -184,49 +174,5 @@ export class Live extends EventTarget {
   getOnline() {
     this.heartbeat()
     return new Promise<number>(resolve => this.addEventListener('heartbeat', e => resolve(e.data), { once: true }))
-  }
-
-  /**
-   * Typed `addEventListener` that narrows the inherited {@link EventTarget}
-   * signature using {@link LiveEventMap}.
-   *
-   * - Known events (e.g. `"heartbeat"`, `"DANMU_MSG"`) are auto-typed.
-   * - Unknown/dynamic events accept a generic `<T>` for the payload type.
-   *
-   * Uses `declare` to shadow the inherited type without emitting code —
-   * at runtime this is still `EventTarget.prototype.addEventListener`.
-   *
-   * @example
-   * ```ts
-   * live.addEventListener('heartbeat', (e) => console.log(e.data))
-   * live.addEventListener('DANMU_MSG', ({ data }) => console.log(data.msg_id))
-   * live.addEventListener<CustomType>('NEW_CMD', ({ data }) => console.log(data))
-   * ```
-   */
-  declare addEventListener: {
-    <K extends keyof LiveEventMap>(
-      type: K,
-      listener: (ev: LiveEventMap[K]) => void,
-      options?: boolean | AddEventListenerOptions
-    ): void
-    <T = unknown>(
-      type: string,
-      listener: (ev: LaplaceRawEvent<T>) => void,
-      options?: boolean | AddEventListenerOptions
-    ): void
-  }
-
-  /**
-   * Typed `removeEventListener` matching {@link addEventListener}.
-   *
-   * Uses `declare` to shadow the inherited type without emitting code.
-   */
-  declare removeEventListener: {
-    <K extends keyof LiveEventMap>(
-      type: K,
-      listener: (ev: LiveEventMap[K]) => void,
-      options?: boolean | EventListenerOptions
-    ): void
-    (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
   }
 }

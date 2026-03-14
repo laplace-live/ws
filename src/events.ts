@@ -94,3 +94,53 @@ export interface LiveEventMap {
   LIVE_OPEN_PLATFORM_LIVE_END: LaplaceRawEvent<BilibiliInternal.WebSocket.OpenPlatform.LIVE_OPEN_PLATFORM_LIVE_END>
   LIVE_OPEN_PLATFORM_INTERACTION_END: LaplaceRawEvent<BilibiliInternal.WebSocket.OpenPlatform.LIVE_OPEN_PLATFORM_INTERACTION_END>
 }
+
+/**
+ * Typed {@link EventTarget} base class for live connections.
+ *
+ * Provides typed `addEventListener` / `removeEventListener` via
+ * {@link LiveEventMap} and a `dispatchEvent` override that emits a
+ * catch-all `"event"` meta-event for every dispatched event.
+ *
+ * Extend this instead of `EventTarget` when building wrappers around
+ * `LiveWS` / `KeepLiveWS` to inherit typed event signatures
+ * automatically — no `declare` duplication required.
+ *
+ * @example
+ * ```ts
+ * import { LaplaceEventTarget, LaplaceRawEvent } from '@laplace.live/ws'
+ *
+ * class MyWrapper extends LaplaceEventTarget {
+ *   // addEventListener is already typed — no extra `declare` needed
+ * }
+ * ```
+ */
+export class LaplaceEventTarget extends EventTarget {
+  dispatchEvent(event: Event): boolean {
+    const result = super.dispatchEvent(event)
+    super.dispatchEvent(new LaplaceRawEvent('event', event))
+    return result
+  }
+
+  declare addEventListener: {
+    <K extends keyof LiveEventMap>(
+      type: K,
+      listener: (ev: LiveEventMap[K]) => void,
+      options?: boolean | AddEventListenerOptions
+    ): void
+    <T = unknown>(
+      type: string,
+      listener: (ev: LaplaceRawEvent<T>) => void,
+      options?: boolean | AddEventListenerOptions
+    ): void
+  }
+
+  declare removeEventListener: {
+    <K extends keyof LiveEventMap>(
+      type: K,
+      listener: (ev: LiveEventMap[K]) => void,
+      options?: boolean | EventListenerOptions
+    ): void
+    (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void
+  }
+}
