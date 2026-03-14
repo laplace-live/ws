@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.6
+
+### Patch Changes
+
+- 9d09443: introduce LaplaceEventTarget for typed event handling
+
 ## 7.1.5
 
 ### Patch Changes
