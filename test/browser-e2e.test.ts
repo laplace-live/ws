@@ -262,125 +262,133 @@ describe('browser-e2e LiveWS protover 2', () => {
 // -- LiveWS send danmaku (protover 3 + 2) -------------------------------------
 
 describe('browser-e2e LiveWS send danmaku', () => {
-  test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS', async () => {
-    const content = randomDanmaku()
+  test.skipIf(!TEST_LOGIN_SYNC_TOKEN)(
+    'should receive sent danmaku via WS',
+    async () => {
+      const content = randomDanmaku()
 
-    await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        window.__testMsgs = []
-        const live = new window.LiveWS(roomid, { address, authBody })
-        window.__testLive = live
-        live.addEventListener('msg', e => {
-          console.log('danmaku test: msg received, cmd:', e.data?.cmd)
-          window.__testMsgs.push(e.data)
-        })
-        await new Promise<void>((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
-          live.addEventListener('live', () => {
-            console.log('danmaku test: connected, waiting for danmaku...')
-            clearTimeout(timer)
-            resolve()
+      await page.evaluate(
+        async ({ address, authBody, roomid }) => {
+          window.__testMsgs = []
+          const live = new window.LiveWS(roomid, { address, authBody })
+          window.__testLive = live
+          live.addEventListener('msg', e => {
+            console.log('danmaku test: msg received, cmd:', e.data?.cmd)
+            window.__testMsgs.push(e.data)
           })
-        })
-      },
-      { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
-    )
-
-    await sendDanmaku(TEST_ROOM, content)
-
-    const received = await page.evaluate(
-      async ({ content }) => {
-        return new Promise<string>((resolve, reject) => {
-          const timer = setTimeout(() => {
-            window.__testLive.close()
-            reject(new Error('Timeout waiting for sent danmaku'))
-          }, 10000)
-
-          const check = (msg: { cmd?: string; info?: unknown[] }) => {
-            if (msg.cmd === 'DANMU_MSG' && msg.info?.[1] === content) {
-              console.log('danmaku test: matched DANMU_MSG:', msg.info[1])
+          await new Promise<void>((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
+            live.addEventListener('live', () => {
+              console.log('danmaku test: connected, waiting for danmaku...')
               clearTimeout(timer)
+              resolve()
+            })
+          })
+        },
+        { address: authV3.address, authBody: authV3.authBody, roomid: TEST_ROOM }
+      )
+
+      await sendDanmaku(TEST_ROOM, content)
+
+      const received = await page.evaluate(
+        async ({ content }) => {
+          return new Promise<string>((resolve, reject) => {
+            const timer = setTimeout(() => {
               window.__testLive.close()
-              resolve(msg.info[1])
-              return true
+              reject(new Error('Timeout waiting for sent danmaku'))
+            }, 10000)
+
+            const check = (msg: { cmd?: string; info?: unknown[] }) => {
+              if (msg.cmd === 'DANMU_MSG' && msg.info?.[1] === content) {
+                console.log('danmaku test: matched DANMU_MSG:', msg.info[1])
+                clearTimeout(timer)
+                window.__testLive.close()
+                resolve(msg.info[1])
+                return true
+              }
+              return false
             }
-            return false
-          }
 
-          for (const msg of window.__testMsgs) {
-            if (check(msg)) return
-          }
+            for (const msg of window.__testMsgs) {
+              if (check(msg)) return
+            }
 
-          window.__testLive.addEventListener('msg', e => {
-            check(e.data)
+            window.__testLive.addEventListener('msg', e => {
+              check(e.data)
+            })
           })
-        })
-      },
-      { content }
-    )
+        },
+        { content }
+      )
 
-    expect(received).toBe(content)
-  })
+      expect(received).toBe(content)
+    },
+    20_000
+  )
 
-  test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS with protover 2', async () => {
-    const content = randomDanmaku()
+  test.skipIf(!TEST_LOGIN_SYNC_TOKEN)(
+    'should receive sent danmaku via WS with protover 2',
+    async () => {
+      const content = randomDanmaku()
 
-    await page.evaluate(
-      async ({ address, authBody, roomid }) => {
-        window.__testMsgs = []
-        const live = new window.LiveWS(roomid, { address, authBody, protover: 2 })
-        window.__testLive = live
-        live.addEventListener('msg', e => {
-          console.log('danmaku test v2: msg received, cmd:', e.data?.cmd)
-          window.__testMsgs.push(e.data)
-        })
-        await new Promise<void>((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
-          live.addEventListener('live', () => {
-            console.log('danmaku test v2: connected, waiting for danmaku...')
-            clearTimeout(timer)
-            resolve()
+      await page.evaluate(
+        async ({ address, authBody, roomid }) => {
+          window.__testMsgs = []
+          const live = new window.LiveWS(roomid, { address, authBody, protover: 2 })
+          window.__testLive = live
+          live.addEventListener('msg', e => {
+            console.log('danmaku test v2: msg received, cmd:', e.data?.cmd)
+            window.__testMsgs.push(e.data)
           })
-        })
-      },
-      { address: authV2.address, authBody: authV2.authBody, roomid: TEST_ROOM }
-    )
-
-    await sendDanmaku(TEST_ROOM, content)
-
-    const received = await page.evaluate(
-      async ({ content }) => {
-        return new Promise<string>((resolve, reject) => {
-          const timer = setTimeout(() => {
-            window.__testLive.close()
-            reject(new Error('Timeout waiting for sent danmaku'))
-          }, 10000)
-
-          const check = (msg: { cmd?: string; info?: unknown[] }) => {
-            if (msg.cmd === 'DANMU_MSG' && msg.info?.[1] === content) {
-              console.log('danmaku test v2: matched DANMU_MSG:', msg.info[1])
+          await new Promise<void>((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Timeout waiting for live event')), 4000)
+            live.addEventListener('live', () => {
+              console.log('danmaku test v2: connected, waiting for danmaku...')
               clearTimeout(timer)
-              window.__testLive.close()
-              resolve(msg.info[1])
-              return true
-            }
-            return false
-          }
-
-          for (const msg of window.__testMsgs) {
-            if (check(msg)) return
-          }
-
-          window.__testLive.addEventListener('msg', e => {
-            check(e.data)
+              resolve()
+            })
           })
-        })
-      },
-      { content }
-    )
+        },
+        { address: authV2.address, authBody: authV2.authBody, roomid: TEST_ROOM }
+      )
 
-    expect(received).toBe(content)
-  })
+      await sendDanmaku(TEST_ROOM, content)
+
+      const received = await page.evaluate(
+        async ({ content }) => {
+          return new Promise<string>((resolve, reject) => {
+            const timer = setTimeout(() => {
+              window.__testLive.close()
+              reject(new Error('Timeout waiting for sent danmaku'))
+            }, 10000)
+
+            const check = (msg: { cmd?: string; info?: unknown[] }) => {
+              if (msg.cmd === 'DANMU_MSG' && msg.info?.[1] === content) {
+                console.log('danmaku test v2: matched DANMU_MSG:', msg.info[1])
+                clearTimeout(timer)
+                window.__testLive.close()
+                resolve(msg.info[1])
+                return true
+              }
+              return false
+            }
+
+            for (const msg of window.__testMsgs) {
+              if (check(msg)) return
+            }
+
+            window.__testLive.addEventListener('msg', e => {
+              check(e.data)
+            })
+          })
+        },
+        { content }
+      )
+
+      expect(received).toBe(content)
+    },
+    20_000
+  )
 })
 
 // -- KeepLiveWS ---------------------------------------------------------------
@@ -458,5 +466,5 @@ describe('browser-e2e KeepLiveWS', () => {
     expect(result.reconnected).toBe(true)
     expect(result.roomid).toBe(TEST_ROOM)
     expect(result.onlineType).toBe('number')
-  })
+  }, 15_000)
 })
