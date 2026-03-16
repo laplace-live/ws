@@ -93,7 +93,7 @@ afterAll(async () => {
 
 // -- LiveWS (protover 3, brotli) — shared connection --------------------------
 
-describe('browser LiveWS', () => {
+describe('browser-e2e LiveWS', () => {
   test('should connect, receive heartbeat, msg, and getOnline', async () => {
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
@@ -205,7 +205,7 @@ describe('browser LiveWS', () => {
 
 // -- LiveWS (protover 2, zlib) — shared connection ----------------------------
 
-describe('browser LiveWS protover 2', () => {
+describe('browser-e2e LiveWS protover 2', () => {
   test('should connect, receive heartbeat, and msg with protover 2', async () => {
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
@@ -261,7 +261,7 @@ describe('browser LiveWS protover 2', () => {
 
 // -- LiveWS send danmaku (protover 3 + 2) -------------------------------------
 
-describe('browser LiveWS send danmaku', () => {
+describe('browser-e2e LiveWS send danmaku', () => {
   test.skipIf(!TEST_LOGIN_SYNC_TOKEN)('should receive sent danmaku via WS', async () => {
     const content = randomDanmaku()
 
@@ -385,7 +385,7 @@ describe('browser LiveWS send danmaku', () => {
 
 // -- KeepLiveWS ---------------------------------------------------------------
 
-describe('browser KeepLiveWS', () => {
+describe('browser-e2e KeepLiveWS', () => {
   test('should connect and expose online/roomid', async () => {
     const result = await page.evaluate(
       async ({ address, authBody, roomid }) => {
