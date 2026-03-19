@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.7
+
+### Patch Changes
+
+- f2dc255: expose websocket
+
 ## 7.1.6
 
 ### Patch Changes
