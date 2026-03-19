@@ -10,6 +10,8 @@ import { Live, type LiveOptions } from './live.ts'
 export type WSOptions = LiveOptions & {
   /** WebSocket server URL. Defaults to `wss://broadcastlv.chat.bilibili.com/sub`. */
   address?: string
+  /** Factory to create the WebSocket (e.g. for runtime-specific options like Bun's proxy). */
+  createWebSocket?: (address: string) => WebSocket
 }
 
 /**
@@ -34,9 +36,9 @@ export class LiveWSBase extends Live {
   constructor(
     inflates: Inflates,
     roomid: number,
-    { address = 'wss://broadcastlv.chat.bilibili.com/sub', ...options }: WSOptions = {}
+    { address = 'wss://broadcastlv.chat.bilibili.com/sub', createWebSocket, ...options }: WSOptions = {}
   ) {
-    const ws = new WebSocket(address)
+    const ws = createWebSocket ? createWebSocket(address) : new WebSocket(address)
     const send = (data: Uint8Array) => {
       if (ws.readyState === 1) {
         ws.send(data)
