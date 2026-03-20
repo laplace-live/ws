@@ -117,11 +117,7 @@ export class Live extends LaplaceEventTarget {
           this.dispatchEvent(new LaplaceRawEvent('msg', data))
           const cmd = data.cmd || data.msg?.cmd
           if (cmd) {
-            if (cmd.includes('DANMU_MSG')) {
-              this.dispatchEvent(new LaplaceRawEvent('DANMU_MSG', data))
-            } else {
-              this.dispatchEvent(new LaplaceRawEvent(cmd, data))
-            }
+            this.dispatchEvent(new LaplaceRawEvent(cmd, data))
           }
         }
       })
