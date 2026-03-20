@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.8
+
+### Patch Changes
+
+- 6708a81: avoid wildcard DANMU_MSG matching
+
 ## 7.1.7
 
 ### Patch Changes
