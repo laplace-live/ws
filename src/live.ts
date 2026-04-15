@@ -92,8 +92,10 @@ export class Live extends LaplaceEventTarget {
 
     this.send = send
     this.close = () => {
+      if (this.closed) return
       this.closed = true
       close()
+      this.dispatchEvent(new Event('close'))
     }
 
     const decode = makeDecoder(inflates)

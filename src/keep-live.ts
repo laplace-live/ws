@@ -35,7 +35,7 @@ export class KeepLive<T extends Live> extends LaplaceEventTarget {
     super()
     this.createConnection = createConnection
     this.closed = false
-    this.interval = 100
+    this.interval = 3000
     this.timeout = 45 * 1000
     this.connection = this.createConnection()
     this.connect(false)
@@ -50,8 +50,9 @@ export class KeepLive<T extends Live> extends LaplaceEventTarget {
    */
   connect(reconnect = true) {
     if (reconnect) {
-      this.connection.close()
+      const old = this.connection
       this.connection = this.createConnection()
+      old.close()
     }
     const connection = this.connection
 
@@ -61,6 +62,7 @@ export class KeepLive<T extends Live> extends LaplaceEventTarget {
     }, this.timeout)
 
     connection.addEventListener('event', e => {
+      if (this.connection !== connection) return
       const evt = e.data
       if (evt.type !== 'error') {
         if (evt instanceof LaplaceRawEvent) {
@@ -73,12 +75,13 @@ export class KeepLive<T extends Live> extends LaplaceEventTarget {
 
     connection.addEventListener('error', () => this.dispatchEvent(new Event('e')))
     connection.addEventListener('close', () => {
-      if (!this.closed) {
+      if (!this.closed && this.connection === connection) {
         setTimeout(() => this.connect(), this.interval)
       }
     })
 
     connection.addEventListener('heartbeat', () => {
+      if (this.connection !== connection) return
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         connection.close()

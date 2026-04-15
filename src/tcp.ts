@@ -54,7 +54,11 @@ export class LiveTCPBase extends Live {
     this.buf = Buffer.alloc(0)
 
     socket.on('ready', () => this.dispatchEvent(new Event('open')))
-    socket.on('close', () => this.dispatchEvent(new Event('close')))
+    socket.on('close', () => {
+      if (!this.closed) {
+        this.dispatchEvent(new Event('close'))
+      }
+    })
     socket.on('error', () => this.dispatchEvent(new Event('_error')))
     socket.on('data', buffer => {
       this.buf = Buffer.concat([this.buf, buffer])
