@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.9
+
+### Patch Changes
+
+- 9fe9f68: reconnection handling
+
 ## 7.1.8
 
 ### Patch Changes
