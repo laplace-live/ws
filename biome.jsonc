@@ -7,7 +7,17 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!node_modules", "!dist", "!build", "!output", "!out", "!references", "!migrations"]
+    "includes": [
+      "**",
+      "!node_modules",
+      "!dist",
+      "!build",
+      "!output",
+      "!out",
+      "!references",
+      "!migrations",
+      "!src/inflate/brotli.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

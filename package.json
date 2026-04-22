@@ -37,7 +37,8 @@
     "test": "bun test --timeout 5000",
     "prepublishOnly": "bun run build",
     "release": "changeset publish",
-    "version": "changeset version"
+    "version": "changeset version",
+    "lint": "biome check"
   },
   "repository": {
     "type": "git",
