@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 7.1.10
+
+### Patch Changes
+
+- dbf89eb: tsdown migration
+
 ## 7.1.9
 
 ### Patch Changes
