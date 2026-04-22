@@ -11,4 +11,3 @@ test/
 *.config.*
 biome.jsonc
 tsconfig.json
-.nyc_output
