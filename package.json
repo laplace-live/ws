@@ -32,7 +32,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "check": "tsc --noEmit",
     "test": "bun test --timeout 5000",
     "prepublishOnly": "bun run build",
@@ -70,7 +70,7 @@
     "@changesets/cli": "^2.31.0",
     "@types/bun": "^1.3.12",
     "playwright": "^1.59.1",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.21.9",
     "typescript": "^5.9.3"
   }
 }
