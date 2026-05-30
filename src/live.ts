@@ -17,7 +17,7 @@ export type LiveOptions = {
    * sent raw; when supplied as an object it is JSON-encoded before sending.
    * Takes precedence over {@link key}, {@link uid}, and {@link buvid}.
    */
-  authBody?: Uint8Array | Record<string, unknown>
+  authBody?: Uint8Array<ArrayBuffer> | Record<string, unknown>
   /** User ID. Defaults to `0` (anonymous). */
   uid?: number
   /** Browser unique visitor ID used for risk-control tracking. */
@@ -62,7 +62,7 @@ export class Live extends LaplaceEventTarget {
   timeout: ReturnType<typeof setTimeout>
 
   /** Send raw binary data over the underlying transport. */
-  send: (data: Uint8Array) => void
+  send: (data: Uint8Array<ArrayBuffer>) => void
   /** Gracefully close the connection and set {@link closed} to `true`. */
   close: () => void
 
@@ -77,7 +77,7 @@ export class Live extends LaplaceEventTarget {
       authBody,
       uid = 0,
       buvid,
-    }: { send: (data: Uint8Array) => void; close: () => void } & LiveOptions
+    }: { send: (data: Uint8Array<ArrayBuffer>) => void; close: () => void } & LiveOptions
   ) {
     if (typeof roomid !== 'number' || Number.isNaN(roomid)) {
       throw new Error(`roomid ${roomid} must be Number not NaN`)

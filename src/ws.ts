@@ -39,7 +39,7 @@ export class LiveWSBase extends Live {
     { address = 'wss://broadcastlv.chat.bilibili.com/sub', createWebSocket, ...options }: WSOptions = {}
   ) {
     const ws = createWebSocket ? createWebSocket(address) : new WebSocket(address)
-    const send = (data: Uint8Array) => {
+    const send = (data: Uint8Array<ArrayBuffer>) => {
       if (ws.readyState === 1) {
         ws.send(data)
       }

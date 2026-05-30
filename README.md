@@ -16,6 +16,12 @@ A modern, web-standard rewrite of [bilibili-live-ws](https://github.com/simon300
 bun add @laplace.live/ws
 ```
 
+## Requirements
+
+TypeScript **5.7 or newer**. The binary surface uses the generic typed-array
+types (`Uint8Array<ArrayBuffer>`) introduced in TS 5.7, so older compilers will
+report `Uint8Array is not generic`.
+
 ## Usage
 
 Known Bilibili events are auto-typed via `LiveEventMap` — no manual generics
@@ -104,12 +110,18 @@ The `relayEvent` symbol is replaced by an `event` meta-event:
 ### Buffer → Uint8Array
 
 Raw data uses `Uint8Array` instead of `Buffer`. If you pass a custom
-`authBody` as binary, use `Uint8Array`:
+`authBody` as binary, use an `ArrayBuffer`-backed `Uint8Array<ArrayBuffer>`:
 
 ```diff
 - live = new LiveWS(roomid, { authBody: Buffer.from(...) });
 + live = new LiveWS(roomid, { authBody: new Uint8Array(...) });
 ```
+
+`new Uint8Array(...)` already allocates an `ArrayBuffer`-backed view. If you
+hold a value typed as a bare `Uint8Array` (i.e. `Uint8Array<ArrayBufferLike>`,
+whose buffer could be a `SharedArrayBuffer`), narrow it to
+`Uint8Array<ArrayBuffer>` or copy it with `new Uint8Array(data)` before passing
+it to `authBody` or `send`.
 
 ## License
 

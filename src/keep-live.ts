@@ -128,7 +128,7 @@ export class KeepLive<T extends Live> extends LaplaceEventTarget {
    * Send raw binary data through the underlying connection.
    * @param data - The binary packet to send.
    */
-  send(data: Uint8Array) {
+  send(data: Uint8Array<ArrayBuffer>) {
     return this.connection.send(data)
   }
 }

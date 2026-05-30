@@ -43,7 +43,7 @@ export class LiveTCPBase extends Live {
     { host = 'broadcastlv.chat.bilibili.com', port = 2243, ...options }: TCPOptions = {}
   ) {
     const socket = net.connect(port, host)
-    const send = (data: Uint8Array) => {
+    const send = (data: Uint8Array<ArrayBuffer>) => {
       socket.write(data)
     }
     const close = () => this.socket.end()
