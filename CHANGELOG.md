@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 8.0.1
+
+### Patch Changes
+
+- 4025582: update deps
+
 ## 8.0.0
 
 ### Major Changes
