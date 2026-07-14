@@ -1,5 +1,12 @@
 # @laplace.live/ws
 
+## 8.0.2
+
+### Patch Changes
+
+- 485b80e: update deps
+- 5593c4e: bump typescript deps
+
 ## 8.0.1
 
 ### Patch Changes
