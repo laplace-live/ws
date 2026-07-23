@@ -39,10 +39,18 @@ live.addEventListener("heartbeat", ({ data }) => console.log("Online:", data));
 
 // Known Bilibili commands are typed from @laplace.live/internal
 live.addEventListener("DANMU_MSG", ({ data }) => console.log(data.msg_id));
-live.addEventListener("SEND_GIFT", ({ data }) => console.log(data.giftName));
 live.addEventListener("SUPER_CHAT_MESSAGE", ({ data }) =>
   console.log(data.message),
 );
+
+live.addEventListener("SEND_GIFT", ({ data }) => console.log(data.giftName));
+
+// A blind-box batch bundles several gifts into one SEND_GIFT_V2, so loop every item (You need to define `parseSendGiftV2` yourself):
+live.addEventListener("SEND_GIFT_V2", ({ data }) => {
+  for (const gift of parseSendGiftV2(data)) {
+    console.log(gift.giftName);
+  }
+});
 
 // Dynamic/unknown events use a generic fallback
 live.addEventListener<{ custom: string }>("NEW_CMD", ({ data }) =>
