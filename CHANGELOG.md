@@ -1,5 +1,12 @@
 # @laplace.live/ws
 
+## 8.0.3
+
+### Patch Changes
+
+- 0b50516: update deps
+- 655883e: Add example for SEND_GIFT_V2
+
 ## 8.0.2
 
 ### Patch Changes
