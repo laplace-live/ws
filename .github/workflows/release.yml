@@ -34,7 +34,7 @@ jobs:
       - run: sudo npm install -g npm@latest
 
       - name: Create release PR or publish
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           publish: bun run release
           version: bun run version
