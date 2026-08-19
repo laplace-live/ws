@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 8.0.4
+
+### Patch Changes
+
+- c1dd148: Update release process
+
 ## 8.0.3
 
 ### Patch Changes
