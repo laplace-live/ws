@@ -45,6 +45,10 @@ export interface LiveEventMap {
   event: LaplaceRawEvent<Event>
 
   DANMU_MSG: LaplaceRawEvent<BilibiliInternal.WebSocket.Prod.DANMU_MSG>
+  /** Danmaku from another room synced into this connection; same schema as `DANMU_MSG`. */
+  DANMU_MSG_MIRROR: LaplaceRawEvent<
+    Omit<BilibiliInternal.WebSocket.Prod.DANMU_MSG, 'cmd'> & { cmd: 'DANMU_MSG_MIRROR' }
+  >
   RECALL_DANMU_MSG: LaplaceRawEvent<BilibiliInternal.WebSocket.Prod.RECALL_DANMU_MSG>
   INTERACT_WORD: LaplaceRawEvent<BilibiliInternal.WebSocket.Prod.INTERACT_WORD>
   ENTRY_EFFECT: LaplaceRawEvent<BilibiliInternal.WebSocket.Prod.ENTRY_EFFECT>
