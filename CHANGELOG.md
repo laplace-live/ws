@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 8.0.5
+
+### Patch Changes
+
+- aa4bdb3: Better DANMU_MSG_MIRROR support
+
 ## 8.0.4
 
 ### Patch Changes
