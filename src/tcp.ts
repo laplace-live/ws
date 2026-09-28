@@ -61,6 +61,8 @@ export class LiveTCPBase extends Live {
     })
     socket.on('error', () => this.dispatchEvent(new Event('_error')))
     socket.on('data', buffer => {
+      // Only a string if setEncoding() was called; the binary protocol needs raw bytes
+      if (typeof buffer === 'string') return
       this.buf = Buffer.concat([this.buf, buffer])
       this.splitBuffer()
     })
