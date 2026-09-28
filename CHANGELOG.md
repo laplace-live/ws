@@ -1,5 +1,15 @@
 # @laplace.live/ws
 
+## 8.1.0
+
+### Minor Changes
+
+- ce66cce: Decompress incoming frames synchronously on Node.js and Bun (`brotliDecompressSync` / `inflateSync`) instead of the async threadpool variants. In a 500-room benchmark replaying recorded traffic, this used 20% (Node) to 35% (Bun) less CPU and cut median message latency by 32–60%. The browser build is unchanged.
+
+### Patch Changes
+
+- ebc8cca: Handle unsupport buffer data
+
 ## 8.0.5
 
 ### Patch Changes
