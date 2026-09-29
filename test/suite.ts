@@ -33,9 +33,10 @@ export function runLiveWSSuite(label: string, LiveWS: LiveWSConstructor, KeepLiv
   let authV3: Awaited<ReturnType<typeof acquireAuthBody>>
   let authV2: Awaited<ReturnType<typeof acquireAuthBody>>
 
+  // Hooks default to a 5s timeout, but this one waits on the auth proxy, which often takes 1–3s.
   beforeAll(async () => {
     ;[authV3, authV2] = await Promise.all([acquireAuthBody(TEST_ROOM), acquireAuthBody(TEST_ROOM, 2)])
-  })
+  }, BASE_TIMEOUT)
 
   describe(`${label} LiveWS`, () => {
     const connections: Live[] = []

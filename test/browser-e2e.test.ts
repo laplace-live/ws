@@ -42,6 +42,7 @@ let server: ReturnType<typeof Bun.serve>
 let authV3: Awaited<ReturnType<typeof acquireAuthBody>>
 let authV2: Awaited<ReturnType<typeof acquireAuthBody>>
 
+// Hooks default to a 5s timeout, but this one waits on the auth proxy (often 1–3s) and then launches Chromium.
 beforeAll(async () => {
   const [buildResult, a3, a2] = await Promise.all([
     Bun.build({
@@ -84,7 +85,7 @@ beforeAll(async () => {
   })
   await page.goto(`http://localhost:${server.port}`)
   await page.waitForFunction(() => window.__ready === true)
-})
+}, 15_000)
 
 afterAll(async () => {
   await browser?.close()

@@ -21,7 +21,7 @@ describe('acquireAuthBody', () => {
     expect(authBody.key.length).toBeGreaterThan(0)
     expect(authBody.roomid).toBe(TEST_ROOM)
     expect(authBody.protover).toBe(3)
-  })
+  }, 10_000)
 })
 
 describe('getRoomid', () => {
@@ -29,7 +29,7 @@ describe('getRoomid', () => {
     const roomid = await getRoomid(TEST_ROOM)
     expect(typeof roomid).toBe('number')
     expect(roomid).toBeGreaterThan(0)
-  })
+  }, 10_000)
 })
 
 // -- Server-only: encoder -----------------------------------------------------
