@@ -1,5 +1,11 @@
 # @laplace.live/ws
 
+## 8.1.1
+
+### Patch Changes
+
+- ed44350: update types for anon rooms
+
 ## 8.1.0
 
 ### Minor Changes
