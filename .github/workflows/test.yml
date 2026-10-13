@@ -45,3 +45,5 @@ jobs:
           TEST_AUTH_BODY_URL: ${{ secrets.TEST_AUTH_BODY_URL }}
           TEST_LIVE_SEND_URL: ${{ secrets.TEST_LIVE_SEND_URL }}
           TEST_LOGIN_SYNC_TOKEN: ${{ secrets.TEST_LOGIN_SYNC_TOKEN }}
+          TEST_AUTH_BODY_HEADER_NAME: ${{ secrets.TEST_AUTH_BODY_HEADER_NAME }}
+          TEST_AUTH_BODY_HEADER_VALUE: ${{ secrets.TEST_AUTH_BODY_HEADER_VALUE }}

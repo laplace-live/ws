@@ -3,6 +3,9 @@ import type { BilibiliInternal } from '@laplace.live/internal'
 export const TEST_ROOM = 456117
 export const TEST_LOGIN_SYNC_TOKEN = process.env.TEST_LOGIN_SYNC_TOKEN
 
+// Access header for the auth proxy. Both name and value come from the environment so neither appears in this repo.
+const { TEST_AUTH_BODY_HEADER_NAME, TEST_AUTH_BODY_HEADER_VALUE } = process.env
+
 // Uses Man'yogana
 const DANMAKU_CHARS = '阿伊宇将於加幾久介己散之須世曾多千川天止奈仁怒祢乃八比不部保末三牟女猫也由與良利流礼呂和乎尓'
 
@@ -19,9 +22,20 @@ export async function acquireAuthBody(roomid: number, protover: 2 | 3 = 3) {
   const url = `${process.env.TEST_AUTH_BODY_URL}/${roomid}`
   const resp = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(TEST_AUTH_BODY_HEADER_NAME && TEST_AUTH_BODY_HEADER_VALUE
+        ? { [TEST_AUTH_BODY_HEADER_NAME]: TEST_AUTH_BODY_HEADER_VALUE }
+        : {}),
+    },
     body: JSON.stringify({}),
   })
+
+  // Report the status rather than a JSON parse error when the proxy returns an error page
+  if (!resp.ok) {
+    throw new Error(`Auth proxy responded ${resp.status} for room ${roomid}`)
+  }
+
   const json: BilibiliInternal.HTTPS.Prod.GetDanmuInfo = await resp.json()
 
   if (!json.data) {
