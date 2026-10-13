@@ -15,10 +15,6 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-      pull-requests: write
 
     steps:
       - uses: actions/checkout@v7
@@ -33,8 +29,30 @@ jobs:
 
       - run: sudo npm install -g npm@latest
 
+      # Release writes (the version PR, tags and GitHub Releases) use a GitHub
+      # App token instead of `GITHUB_TOKEN`. Events caused by `GITHUB_TOKEN`
+      # don't trigger other workflows, so checks on the version PR would wait
+      # for manual approval.
+      #
+      # Requires the laplace-release-bot GitHub App installed on this repo with
+      # Contents and Pull requests read & write, its Client ID and private key
+      # stored in the `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` org
+      # secrets.
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Create release PR or publish
         uses: changesets/action@v2
         with:
           publish-script: bun run release
           version-script: bun run version
+          commit-message: "chore: version packages"
+          pr-title: "chore: version packages"
+          # Must be passed as an input: v2 doesn't read the `GITHUB_TOKEN` env var.
+          github-token: ${{ steps.app-token.outputs.token }}
