@@ -52,7 +52,7 @@ jobs:
         with:
           publish-script: bun run release
           version-script: bun run version
-          commit-message: "chore: version packages"
+          commit-message: "chore: version packages [skip ci]"
           pr-title: "chore: version packages"
           # Must be passed as an input: v2 doesn't read the `GITHUB_TOKEN` env var.
           github-token: ${{ steps.app-token.outputs.token }}
